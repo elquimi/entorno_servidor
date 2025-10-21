@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form action="ej8.php" method="post">
+        <label for="numero">Introduce un número:</label>
+        <input type="number" id="numero" name="numero" required>
+        <input type="hidden" name="numero_rand" value="<?php echo $numero_rand; ?>">
+        <button type="submit">Enviar</button>
+    </form>
+<?php
+?>
+
+</body>
+</html>

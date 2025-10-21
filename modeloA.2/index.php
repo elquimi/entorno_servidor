@@ -38,6 +38,11 @@ if ($archivo && $archivo['error'] === UPLOAD_ERR_OK){
 $tarea = new task($titulo, $descripcion, false, $rutaDestino, $nombreArchivo);
 $tareas[] = $tarea;
 
+include 'head.php';
+include 'body.php';
+include 'foot.php';
+
+
 
 
 

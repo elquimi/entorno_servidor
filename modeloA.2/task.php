@@ -8,7 +8,13 @@ public function __construct(
     private string $filePath,
     private string $fileName,
 
-){}
+){
+        $this->title = $title;
+        $this->description = $description;
+        $this->completed = $completed;
+        $this->filePath = $filePath;
+        $this->fileName = $fileName;
+}
 public function markCompleted(): void{
     $this->completed = true;
 }

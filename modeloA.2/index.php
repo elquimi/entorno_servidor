@@ -15,11 +15,9 @@ $tareas = &$_SESSION['tareas'];
 
 
 
-include 'head.php';
-include 'body.php';
-include 'foot.php';
 
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $titulo = $_POST['title'] ?? 'titulo no definido';
 $descripcion = $_POST['description'] ?? 'descripcion no definida';
 $archivo = $_FILES['file'] ?? null;
@@ -37,6 +35,12 @@ if ($archivo && $archivo['error'] === UPLOAD_ERR_OK){
 
 $tarea = new task($titulo, $descripcion, false, $rutaDestino, $nombreArchivo);
 $tareas[] = $tarea;
+
+header('Location: index.php');
+exit();
+
+}
+
 
 include 'head.php';
 include 'body.php';

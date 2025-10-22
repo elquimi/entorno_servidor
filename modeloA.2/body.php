@@ -1,30 +1,39 @@
-<!-- Formulario para añadir una tarea -->
-<form action="index.php" method="post" enctype="multipart/form-data">
-  <label for="title">Título (obligatorio):</label><br>
-  <input type="text" id="title" name="title" required><br><br>
+<div class="container">
+    <h1>Gestor de Tareas</h1>
 
-  <label for="description">Descripción:</label><br>
-  <textarea id="description" name="description"></textarea><br><br>
+    <div class="task-list">
+        <ul>
+            <?php foreach ($tareas as $i => $tarea): ?>
+                <li class="<?= $tarea->isCompleted() ? 'completed' : '' ?>">
+                    <strong><?= htmlspecialchars($tarea->getTitulo(), ENT_QUOTES, 'UTF-8') ?></strong> - 
+                    <?= $tarea->isCompleted() ? "Completada" : "Pendiente" ?>
+                    <?php if ($tarea->getFileName()): ?>
+                        - <a href="<?= htmlspecialchars($tarea->getFilePath(), ENT_QUOTES, 'UTF-8') ?>" target="_blank">
+                            <?= htmlspecialchars($tarea->getFileName(), ENT_QUOTES, 'UTF-8') ?>
+                          </a>
+                    <?php endif; ?>
 
-  <label for="file">Archivo adjunto (opcional):</label><br>
-  <input type="file" id="file" name="file"><br><br>
+                        
 
-  <button type="submit">Añadir tarea</button>
-</form>
 
-<hr>
+                    <br>
+                    <?= nl2br(htmlspecialchars($tarea->getDescripcion(), ENT_QUOTES, 'UTF-8')) ?>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
 
-<!-- Aquí luego se mostrará la lista de tareas -->
-<div class="task-list">
-  <?php if (!empty($tasks)): ?>
-    <ul>
-      <?php foreach ($tasks as $i => $task): ?>
-        <li>
-          <?php echo htmlspecialchars($task->title, ENT_QUOTES, 'UTF-8'); ?>
-        </li>
-      <?php endforeach; ?>
-    </ul>
-  <?php else: ?>
-    <p>No hay tareas todavía.</p>
-  <?php endif; ?>
+    <h2>Añadir nueva tarea</h2>
+    <form method="post" enctype="multipart/form-data" class="task-form">
+        <label>Título: <input type="text" name="title" required></label><br>
+        <label>Descripción: <textarea name="description"></textarea></label><br>
+        <label>Archivo adjunto: <input type="file" name="file"></label><br>
+        <button type="submit">Añadir tarea</button>
+    </form>
+    <form action="index.php">
+      <button type="submit"></button>
+    </form>
+
+    <br>
+    <a href="reset.php" class="reset-button">Borrar todas las tareas</a>
 </div>

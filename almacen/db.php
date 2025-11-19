@@ -1,7 +1,7 @@
 <?php
 // ---------- CONFIGURACIÓN DE LA BD (ajusta si tu usuario/clave difieren) ------
 $host = '127.0.0.1';
-$db = 'union_europea';
+$db = 'almacen';
 $user = 'root';
 $pass = '';
 $dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";

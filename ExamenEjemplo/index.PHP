@@ -1,127 +1,151 @@
 <?php
-// paso0/index.php
-// PASO 0 — Código monolítico: conexión, lógica y vistas en un solo fichero.
-// NO incluir header/footer en este paso (se hará a partir del paso1).
-// ---------- CONFIGURACIÓN DE LA BD (ajusta si tu usuario/clave difieren) ------
+// index.php
+require 'db.php';
 
-include_once __DIR__ .'/db.php';
-// ---------- LÓGICA (acción = list | add | edit | delete) ----------
-$action = $_REQUEST['action'] ?? 'list';
-// ADD: insertar nuevo cliente
-if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
- $nombre = $_POST['nombre'] ?? '';
- $email = $_POST['email'] ?? '';
- $telefono = $_POST['telefono'] ?? '';
- $direccion = $_POST['direccion'] ?? '';
- $stmt = $pdo->prepare("INSERT INTO clientes (nombre,email,telefono,direccion) 
-VALUES (?,?,?,?)");
- $stmt->execute([$nombre, $email, $telefono, $direccion]);
- // PRG (Post-Redirect-Get) sería mejor, pero para simplicidad actualizamos 
+// Aquí irá la lógica PHP más adelante (Paso 3)
+$mensaje = ""; 
+$paises = []; // Array vacío temporal para que no dé error el HTML
 
- $action = 'list';
+$mensaje = "";
+
+
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+
+$accion = $_POST['accion'] ?? '';
+
+
+if ($accion === 'anadir'){
+   $nombre_pais = trim($_POST['nombre_pais']);
+   $nombre_capital = trim($_POST['nombre_capital']);
+
+
+
+   if (empty($nombre_pais) || empty($nombre_capital)){
+    $mensaje = "!error, los campos tienen que estar completos!";
+}else{
+    $consulta = $pdo ->prepare("SELECT * FROM paises WHERE nombre = ?");
+    $consulta->execute([$nombre_pais]);
+    $paisEncontrado = $consulta->fetch();
+
+    if ($paisEncontrado){
+        if($paisEncontrado['capital'] !==  $nombre_capital){
+
+            $actualizar  = $pdo->prepare("UPDATE paises SET capital = ? where id = ?");
+            $actualizar->execute([$nombre_capital, $paisEncontrado['id']]);
+            $mensaje = "el pais si que existe, se ha cambiado la capital a $nombre_capital.";
+        }else{
+            $mensaje = "el pais ya tiene esa capital, no se hace nada";
+        }
+
+        }else {
+            $insertar = $pdo->prepare("INSERT INTO paises (nombre, capital) VALUES (?,?)");
+            $insertar->execute([$nombre_pais,$nombre_capital]);
+            $mensaje = "Pais añadido con exito";
+        }
+
+
+    }
+
+    }
+
+    if ($accion === "vaciar"){
+        $pdo->exec("TRUNCATE TABLE paises");
+        $mensaje = "lista vaciada.";
+    }
+
+
+
+
 }
-// EDIT: actualizar cliente
-if ($action === 'edit' && $_SERVER['REQUEST_METHOD'] === 'POST') {
- $id = (int)($_POST['id'] ?? 0);
- $nombre = $_POST['nombre'] ?? '';
- $email = $_POST['email'] ?? '';
- $telefono = $_POST['telefono'] ?? '';
- $direccion = $_POST['direccion'] ?? '';
- $stmt = $pdo->prepare("UPDATE clientes SET nombre=?, email=?, telefono=?, 
-direccion=? WHERE id=?");
- $stmt->execute([$nombre, $email, $telefono, $direccion, $id]);
- $action = 'list';
-}
-// DELETE: borrar cliente (por GET en este ejemplo; en producción usar POST)
-if ($action === 'delete') {
- $id = (int)($_GET['id'] ?? 0);
- if ($id) {
- $stmt = $pdo->prepare("DELETE FROM clientes WHERE id=?");
- $stmt->execute([$id]);
- }
- $action = 'list';
-}
-// Obtener datos para editar (cuando accedemos a ?action=edit&id=...)
-$cliente = null;
-if ($action === 'edit' && isset($_GET['id']) && $_SERVER['REQUEST_METHOD'] === 
-'GET') {
- $id = (int)$_GET['id'];
- $stmt = $pdo->prepare("SELECT * FROM clientes WHERE id=?");
- $stmt->execute([$id]);
- $cliente = $stmt->fetch(PDO::FETCH_ASSOC);
-}
-// ---------- VISTA (HTML mezclado con PHP) ----------
+
+
+
+
+
+
+$sentencia = $pdo->query("select * from paises ORDER BY nombre ASC");
+$paises = $sentencia->fetchAll();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ?>
-include_once __DIR__
-<?php if ($action === 'list'): ?>
- <p><a class="button" href="?action=add">Añadir cliente</a></p>
- <?php
- // obtener todos los clientes
- $stmt = $pdo->query("SELECT * FROM clientes ORDER BY id DESC");
- $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
- ?>
- <table>
- <thead>
- <tr>
- 
-<th>ID</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Dirección</th><th>Cr
-eado</th><th>Acciones</th>
- </tr>
- </thead>
- <tbody>
- <?php if (empty($clientes)): ?>
- <tr><td colspan="7">No hay clientes todavía.</td></tr>
- <?php else: ?>
- <?php foreach ($clientes as $c): ?>
- <tr>
- <td><?= htmlspecialchars($c['id']) ?></td>
- <td><?= htmlspecialchars($c['nombre']) ?></td>
- <td><?= htmlspecialchars($c['email']) ?></td>
- <td><?= htmlspecialchars($c['telefono']) ?></td>
- <td><?= htmlspecialchars($c['direccion']) ?></td>
- <td><?= htmlspecialchars($c['creado_at']) ?></td>
- <td class="actions">
- <a href="?action=edit&id=<?= $c['id'] ?>">Editar</a>
- |
- <a href="?action=delete&id=<?= $c['id'] ?>" onclick="return
-confirm('¿Borrar cliente #<?= $c['id'] ?>?')">Borrar</a>
- </td>
- </tr>
- <?php endforeach; ?>
- <?php endif; ?>
- </tbody>
- </table>
-<?php elseif ($action === 'add'): ?>
- <h2>Añadir cliente</h2>
- <form method="post" action="?action=add">
- <label>Nombre<br><input name="nombre" required></label><br><br>
- <label>Email<br><input name="email" type="email" required></label><br><br>
- <label>Teléfono<br><input name="telefono"></label><br><br>
- <label>Dirección<br><input name="direccion"></label><br><br>
- <button type="submit">Crear</button>
- <a class="button" href="?action=list">Volver</a>
- </form>
-<?php elseif ($action === 'edit' && $cliente): ?>
- <h2>Editar cliente #<?= htmlspecialchars($cliente['id']) ?></h2>
- <form method="post" action="?action=edit">
- <input type="hidden" name="id" value="<?= htmlspecialchars($cliente['id']) 
-?>">
- <label>Nombre<br><input name="nombre" required value="<?= 
-htmlspecialchars($cliente['nombre']) ?>"></label><br><br>
- <label>Email<br><input name="email" type="email" required value="<?= 
-htmlspecialchars($cliente['email']) ?>"></label><br><br>
- <label>Teléfono<br><input name="telefono" value="<?= 
-htmlspecialchars($cliente['telefono']) ?>"></label><br><br>
- <label>Dirección<br><input name="direccion" value="<?= 
-htmlspecialchars($cliente['direccion']) ?>"></label><br><br>
- <button type="submit">Guardar</button>
- <a class="button" href="?action=list">Volver</a>
- </form>
-<?php else: ?>
- <p>Acción no reconocida. <a href="?action=list">Volver a la lista</a></p>
-<?php endif; ?>
-<hr>
-<p class="small">Estructura de este paso:<br><code>paso0/ index.php (todo en un
-solo fichero)</code></p>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Examen Países UE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>PAISES DE LA UNIÓN EUROPEA</h1>
+
+        <?php if ($mensaje != ""): ?>
+            <div class="mensaje">
+                <?= $mensaje ?>
+            </div>
+        <?php endif; ?>
+
+        <fieldset>
+            <legend>Listado paises</legend>
+            <ul>
+               
+            <?php
+            foreach ($paises as $pais):
+            ?>
+                <li>
+              <p>el pais es <?= $pais['nombre']?> y la capital es <?= $pais['capital']?></p>
+             
+              
+            </li>
+            <?php
+            endforeach;
+            ?>
+            </ul>
+        </fieldset>
+
+        <fieldset>
+            <legend>Pais de la unión europea</legend>
+            <form method="POST" action="index.php">
+                <input type="hidden" name="accion" value="anadir">
+
+                <label>Pais:</label>
+                <input type="text" name="nombre_pais"><br><br>
+
+                <label>Capital:</label>
+                <input type="text" name="nombre_capital"><br><br>
+
+                <button type="submit">Añadir país</button>
+                <button type="reset">Limpiar Campos</button>
+            </form>
+        </fieldset>
+
+        <fieldset>
+            <legend>Vaciar Listado</legend>
+            <form method="POST" action="index.php">
+                <input type="hidden" name="accion" value="vaciar">
+                <button type="submit" style="color: red;">Vaciar</button>
+            </form>
+        </fieldset>
+    </div>
 </body>
 </html>

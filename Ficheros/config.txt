@@ -1,0 +1,4 @@
+APP_NAME=DataLog INC
+APP_ENV=development
+DB_HOST=localhost
+DB_USER=root

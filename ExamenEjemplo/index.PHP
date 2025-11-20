@@ -113,7 +113,7 @@ $paises = $sentencia->fetchAll();
             foreach ($paises as $pais):
             ?>
                 <li>
-              <p>el pais es <?= $pais['nombre']?> y la capital es <?= $pais['capital']?></p>
+              <p>el pais es <?= $pais['nombre']?> y la capital es <?= $pais['capital']?> que tiene el numero <?= $pais['id']?></p>
              
               
             </li>

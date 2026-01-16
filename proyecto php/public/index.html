@@ -101,5 +101,14 @@
             input.addEventListener('input', () => filterPokemonList(input.value));
         });
     </script>
+
+    <!-- Modal para detalles del Pokémon -->
+    <div id="pokemonModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" onclick="closePokemonModal()">&times;</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
 </body>
 </html>

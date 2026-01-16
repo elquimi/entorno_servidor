@@ -62,8 +62,22 @@ function renderPokemonList(list) {
             <span class="pokemon-name">${item.name}</span>
         `;
         li.addEventListener('click', () => {
-            document.getElementById('searchInput').value = item.name;
-            searchPokemon();
+            // Buscar el Pokémon y abrirlo en modal
+            fetch(`${BASE_PATH}/api/pokemon/search?name=${encodeURIComponent(item.name)}`)
+                .then(r => r.text().then(t => {
+                    try {
+                        return JSON.parse(t);
+                    } catch (e) {
+                        throw new Error('Respuesta inválida');
+                    }
+                }))
+                .then(data => {
+                    if (data.success) {
+                        displayPokemonCard(data.data, 'modalBody');
+                        openPokemonModal();
+                    }
+                })
+                .catch(() => {});
         });
         ul.appendChild(li);
     });
@@ -122,9 +136,11 @@ function searchPokemon() {
         })
         .then(data => {
             if (data.success) {
-                displayPokemonCard(data.data, 'searchResults');
+                displayPokemonCard(data.data, 'modalBody');
+                openPokemonModal();
             } else {
-                showError(data.error || 'Pokémon no encontrado', 'searchResults');
+                showError(data.error || 'Pokémon no encontrado', 'modalBody');
+                openPokemonModal();
             }
         })
         .catch(error => {
@@ -202,12 +218,12 @@ function displayPokemonCard(pokemon, containerId) {
     const percent = v => Math.max(0, Math.min(100, Math.round((v / maxStat) * 100)));
     const types = (pokemon.type || '').split(',').map(t => t.trim()).filter(Boolean);
     const typeColors = {
-        normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
-        grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1', ground: '#E2BF65',
-        flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A', rock: '#B6A136', ghost: '#735797',
-        dragon: '#6F35FC', dark: '#705746', steel: '#B7B7CE', fairy: '#D685AD'
+        'Normal': '#A8A77A', 'Fuego': '#EE8130', 'Agua': '#6390F0', 'Eléctrico': '#F7D02C',
+        'Planta': '#7AC74C', 'Hielo': '#96D9D6', 'Lucha': '#C22E28', 'Veneno': '#A33EA1', 'Tierra': '#E2BF65',
+        'Volador': '#A98FF3', 'Psíquico': '#F95587', 'Bicho': '#A6B91A', 'Roca': '#B6A136', 'Fantasma': '#735797',
+        'Dragón': '#6F35FC', 'Siniestro': '#705746', 'Acero': '#B7B7CE', 'Hada': '#D685AD'
     };
-    const badge = t => `<span class="badge" style="background:${typeColors[t.toLowerCase()]||'#888'}">${t}</span>`;
+    const badge = t => `<span class="badge" style="background:${typeColors[t]||'#888'}">${t}</span>`;
 
     const html = `
         <div class="infobox">
@@ -237,6 +253,11 @@ function displayPokemonCard(pokemon, containerId) {
                     <div><strong>${val}</strong></div>
                 </div>
                 `).join('')}
+                <div class="stat-row stat-total">
+                    <div><strong>Total</strong></div>
+                    <div></div>
+                    <div><strong>${(pokemon.hp || 0) + (pokemon.attack || 0) + (pokemon.defense || 0) + (pokemon.spAtk || 0) + (pokemon.spDef || 0) + (pokemon.speed || 0)}</strong></div>
+                </div>
             </div>
         </div>
     `;
@@ -465,4 +486,35 @@ document.addEventListener('DOMContentLoaded', function() {
             comparePokemon();
         }
     });
+
+    // Cerrar modal al hacer clic en el overlay
+    const modal = document.getElementById('pokemonModal');
+    if (modal) {
+        const overlay = modal.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', closePokemonModal);
+        }
+    }
 });
+
+/**
+ * Abre el modal del Pokémon
+ */
+function openPokemonModal() {
+    const modal = document.getElementById('pokemonModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+/**
+ * Cierra el modal del Pokémon
+ */
+function closePokemonModal() {
+    const modal = document.getElementById('pokemonModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+}

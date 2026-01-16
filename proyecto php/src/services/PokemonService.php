@@ -83,6 +83,34 @@ class PokemonService
     }
 
     /**
+     * Mapea tipos de inglés a español
+     */
+    private function translateType($enType)
+    {
+        $typeMap = [
+            'normal' => 'Normal',
+            'fire' => 'Fuego',
+            'water' => 'Agua',
+            'electric' => 'Eléctrico',
+            'grass' => 'Planta',
+            'ice' => 'Hielo',
+            'fighting' => 'Lucha',
+            'poison' => 'Veneno',
+            'ground' => 'Tierra',
+            'flying' => 'Volador',
+            'psychic' => 'Psíquico',
+            'bug' => 'Bicho',
+            'rock' => 'Roca',
+            'ghost' => 'Fantasma',
+            'dragon' => 'Dragón',
+            'dark' => 'Siniestro',
+            'steel' => 'Acero',
+            'fairy' => 'Hada'
+        ];
+        return $typeMap[strtolower($enType)] ?? ucfirst($enType);
+    }
+
+    /**
      * Parsea los datos de la API al modelo Pokemon
      */
     private function parsePokemonData($data)
@@ -94,7 +122,8 @@ class PokemonService
         // Mapear tipos
         $types = [];
         foreach ($data['types'] as $typeInfo) {
-            $types[] = $typeInfo['type']['name'];
+            $enType = $typeInfo['type']['name'];
+            $types[] = $this->translateType($enType);
         }
 
         // Mapear estadísticas

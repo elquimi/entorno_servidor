@@ -40,11 +40,22 @@ class PokemonService
     private function fetchFromAPI($name)
     {
         try {
-            $url = $this->apiUrl . '/' . $name;
+            // Normalizar nombres especiales de Pokémon
+            $nameMap = [
+                'nidoran-m' => 'nidoran-m',
+                'nidoran-f' => 'nidoran-f',
+                'type-null' => 'type-null',
+                'mr-mime' => 'mr-mime'
+            ];
+            $searchName = $nameMap[strtolower($name)] ?? strtolower($name);
+            $url = $this->apiUrl . '/' . $searchName;
             
-            // Usar file_get_contents o cURL
+            // Usar file_get_contents con contexto
             $context = stream_context_create([
-                'http' => ['timeout' => 5]
+                'http' => [
+                    'timeout' => 5,
+                    'ignore_errors' => true
+                ]
             ]);
             
             $response = @file_get_contents($url, false, $context);
@@ -53,7 +64,19 @@ class PokemonService
                 return null;
             }
 
-            return json_decode($response, true);
+            $data = json_decode($response, true);
+            
+            // Si no es array o está vacío, probablemente hubo error
+            if (!is_array($data) || empty($data)) {
+                return null;
+            }
+            
+            // Si tiene 'error' o 'detail', devolver null
+            if (isset($data['error']) || isset($data['detail'])) {
+                return null;
+            }
+
+            return $data;
         } catch (\Exception $e) {
             return null;
         }
@@ -96,8 +119,8 @@ class PokemonService
             'hp' => $stats['hp'] ?? 0,
             'attack' => $stats['attack'] ?? 0,
             'defense' => $stats['defense'] ?? 0,
-            'spAtk' => $stats['sp-atk'] ?? 0,
-            'spDef' => $stats['sp-def'] ?? 0,
+            'spAtk' => $stats['special-attack'] ?? 0,
+            'spDef' => $stats['special-defense'] ?? 0,
             'speed' => $stats['speed'] ?? 0,
             'image' => $image
         ]);
@@ -217,10 +240,11 @@ class PokemonService
                 $parts = explode('/', trim($url, '/'));
                 $id = intval(end($parts));
             }
+            $image = $id ? "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/{$id}.png" : '';
             $list[] = [
                 'id' => $id,
                 'name' => ucfirst($item['name'] ?? ''),
-                'image' => ''
+                'image' => $image
             ];
         }
         usort($list, function($a,$b){ return ($a['id'] ?? 0) <=> ($b['id'] ?? 0); });

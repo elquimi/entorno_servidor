@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /temp/proyecto%20php/
+    
+    # Si es un archivo o directorio existente, permitir acceso directo
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    
+    # Redirigir todo a index.php
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>

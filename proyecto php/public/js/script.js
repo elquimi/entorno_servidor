@@ -2,8 +2,8 @@
 let currentPokemon1 = null;
 let currentPokemon2 = null;
 
-// Definir ruta base relativa
-const BASE_PATH = '/temp/proyecto php';
+// Definir ruta base relativa (con espacio codificado como %20)
+const BASE_PATH = '/temp/proyecto%20php';
 
 // Event listeners para tabs
 document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -33,6 +33,7 @@ function switchTab(tabName) {
 
 // ==================== Lista y filtro ====================
 let fullPokemonList = [];
+let sortMode = 'asc';
 
 function loadPokemonList() {
     fetch(`${BASE_PATH}/api/pokemon/list`)
@@ -48,10 +49,15 @@ function loadPokemonList() {
 function renderPokemonList(list) {
     const ul = document.getElementById('pokemonList');
     ul.innerHTML = '';
-    list.forEach(item => {
+    const sorted = [...list].sort((a,b) => {
+        const ai = a.id ?? 0, bi = b.id ?? 0;
+        return sortMode === 'desc' ? (bi - ai) : (ai - bi);
+    });
+    sorted.forEach(item => {
         const li = document.createElement('li');
         li.className = 'pokemon-list-item';
         li.innerHTML = `
+            <img class="pokemon-thumb" src="${item.image || ''}" alt="${item.name}" onerror="this.style.display='none'">
             <span class="pokemon-id">#${item.id ?? ''}</span>
             <span class="pokemon-name">${item.name}</span>
         `;
@@ -73,6 +79,22 @@ function filterPokemonList(query) {
     renderPokemonList(filtered);
 }
 
+// Inicialización para lista y controles
+document.addEventListener('DOMContentLoaded', () => {
+    loadPokemonList();
+    const input = document.getElementById('searchInput');
+    if (input) {
+        input.addEventListener('input', () => filterPokemonList(input.value));
+    }
+    const sortSel = document.getElementById('sortMode');
+    if (sortSel) {
+        sortSel.addEventListener('change', (e) => {
+            sortMode = e.target.value || 'asc';
+            filterPokemonList(input ? input.value : '');
+        });
+    }
+});
+
 /**
  * Busca un Pokémon
  */
@@ -89,7 +111,15 @@ function searchPokemon() {
 
     // Llamar a la API (usar ruta relativa)
     fetch(`${BASE_PATH}/api/pokemon/search?name=${encodeURIComponent(pokemonName)}`)
-        .then(response => response.json())
+        .then(response => response.text())
+        .then(text => {
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('Respuesta del servidor:', text);
+                throw new Error('El servidor devolvió una respuesta inválida');
+            }
+        })
         .then(data => {
             if (data.success) {
                 displayPokemonCard(data.data, 'searchResults');
@@ -168,59 +198,46 @@ function calculateCustomStats() {
  */
 function displayPokemonCard(pokemon, containerId) {
     const container = document.getElementById(containerId);
-    
+    const maxStat = 255;
+    const percent = v => Math.max(0, Math.min(100, Math.round((v / maxStat) * 100)));
+    const types = (pokemon.type || '').split(',').map(t => t.trim()).filter(Boolean);
+    const typeColors = {
+        normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
+        grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1', ground: '#E2BF65',
+        flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A', rock: '#B6A136', ghost: '#735797',
+        dragon: '#6F35FC', dark: '#705746', steel: '#B7B7CE', fairy: '#D685AD'
+    };
+    const badge = t => `<span class="badge" style="background:${typeColors[t.toLowerCase()]||'#888'}">${t}</span>`;
+
     const html = `
-        <div class="pokemon-card">
-            <h3>${pokemon.name} (#${pokemon.id})</h3>
-            ${pokemon.image ? `
-                <div class="pokemon-image">
-                    <img src="${pokemon.image}" alt="${pokemon.name}" onerror="this.style.display='none'">
-                </div>
-            ` : ''}
-            <div class="pokemon-info">
-                <div class="info-group">
-                    <label>Tipo:</label>
-                    <value>${pokemon.type}</value>
-                </div>
-                <div class="info-group">
-                    <label>Estadísticas Totales:</label>
-                    <value>${pokemon.totalStats}</value>
+        <div class="infobox">
+            <div class="infobox-header">
+                <div>
+                    <div class="infobox-title">${pokemon.name}</div>
+                    <div class="infobox-subtitle">#${pokemon.id ?? ''}</div>
                 </div>
             </div>
-            <table class="stats-table">
-                <thead>
-                    <tr>
-                        <th>Estadística</th>
-                        <th>Valor</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>HP</td>
-                        <td><strong>${pokemon.hp}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Ataque</td>
-                        <td><strong>${pokemon.attack}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Defensa</td>
-                        <td><strong>${pokemon.defense}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Ataque Especial</td>
-                        <td><strong>${pokemon.spAtk}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Defensa Especial</td>
-                        <td><strong>${pokemon.spDef}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Velocidad</td>
-                        <td><strong>${pokemon.speed}</strong></td>
-                    </tr>
-                </tbody>
-            </table>
+            ${pokemon.image ? `
+            <div class="infobox-image">
+                <img src="${pokemon.image}" alt="${pokemon.name}">
+            </div>` : ''}
+            <div class="badges">${types.map(badge).join('')}</div>
+            <div class="stats">
+                ${[
+                    ['HP', pokemon.hp],
+                    ['Ataque', pokemon.attack],
+                    ['Defensa', pokemon.defense],
+                    ['At. esp.', pokemon.spAtk],
+                    ['Def. esp.', pokemon.spDef],
+                    ['Velocidad', pokemon.speed]
+                ].map(([label, val]) => `
+                <div class="stat-row">
+                    <div>${label}</div>
+                    <div class="bar-bg"><div class="bar-fill" style="width:${percent(val)}%"></div></div>
+                    <div><strong>${val}</strong></div>
+                </div>
+                `).join('')}
+            </div>
         </div>
     `;
 

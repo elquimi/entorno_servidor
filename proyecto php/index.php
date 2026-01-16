@@ -34,11 +34,6 @@ if (empty($request) || $request[0] !== '/') {
     $request = '/' . $request;
 }
 
-// DEBUG: Verificar valor de $request
-error_log("REQUEST_URI: " . $_SERVER['REQUEST_URI']);
-error_log("basePath: " . $basePath);
-error_log("request final: " . $request);
-
 // Router simple
 if ($request === '/' || $request === '' || $request === '/index.php') {
     include PUBLIC_PATH . '/index.html';
@@ -47,8 +42,13 @@ if ($request === '/' || $request === '' || $request === '/index.php') {
     
     // Rutas API
     if ($request === '/api/pokemon/search') {
-        $controller = new controllers\PokemonController();
-        $controller->search($_GET['name'] ?? '');
+        try {
+            $controller = new controllers\PokemonController();
+            $controller->search($_GET['name'] ?? '');
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
     } elseif ($request === '/api/pokemon/compare') {
         $controller = new controllers\PokemonController();
         $controller->compare($_POST['pokemon1'] ?? '', $_POST['pokemon2'] ?? '');

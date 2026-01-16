@@ -30,7 +30,7 @@ define('LOG_FILE', __DIR__ . '/../logs/errors.log');
 
 // ==================== DATOS LOCALES ====================
 // Usa un dataset local en lugar de llamar a PokéAPI
-define('USE_LOCAL_DATA', true);
+define('USE_LOCAL_DATA', false);
 define('LOCAL_DATA_PATH', BASE_PATH . '/database/pokemon.json');
 
 // ==================== CONFIGURACIÓN DE CACHÉ ====================

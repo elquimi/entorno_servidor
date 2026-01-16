@@ -1,0 +1,324 @@
+📁 GUÍA DE ESTRUCTURA DEL PROYECTO
+=================================
+
+## 📂 Jerarquía de Carpetas
+
+```
+proyecto php/
+├── 📄 index.php                    ← PUNTO DE ENTRADA (inicia aquí)
+├── 📄 config.php                   ← Configuración global
+├── 📄 README.md                    ← Documentación completa
+├── 📄 INICIO_RAPIDO.md            ← Guía de inicio rápido
+├── 📄 API_DOCS.md                 ← Documentación de API
+├── 📄 ESTRUCTURA.txt              ← Este archivo
+├── 📄 .gitignore                  ← Archivos a ignorar en git
+│
+├── 📁 public/                      ← ARCHIVOS PÚBLICOS (lo que ve el usuario)
+│   ├── 📄 index.html              ← Página HTML principal
+│   ├── 📄 404.html                ← Página de error 404
+│   │
+│   ├── 📁 css/
+│   │   └── 📄 styles.css          ← Estilos CSS de toda la app
+│   │
+│   ├── 📁 js/
+│   │   └── 📄 script.js           ← Lógica JavaScript del frontend
+│   │
+│   └── 📁 images/                 ← Imágenes locales (futuro)
+│
+└── 📁 src/                         ← CÓDIGO PHP BACKEND (servidor)
+    │
+    ├── 📁 controllers/             ← Controladores (reciben solicitudes)
+    │   ├── 📄 PokemonController.php
+    │   └── 📄 StatsController.php
+    │
+    ├── 📁 models/                  ← Modelos (estructuras de datos)
+    │   └── 📄 Pokemon.php
+    │
+    ├── 📁 services/                ← Servicios (lógica del negocio)
+    │   ├── 📄 PokemonService.php
+    │   └── 📄 StatsService.php
+    │
+    └── 📁 utils/                   ← Utilidades y helpers
+        └── 📄 Helper.php
+```
+
+---
+
+## 📄 Descripción de Archivos
+
+### Raíz del Proyecto
+
+| Archivo | Descripción |
+|---------|-----------|
+| `index.php` | Punto de entrada. Gestiona rutas y solicitudes |
+| `config.php` | Configuración global de la aplicación |
+| `README.md` | Documentación completa del proyecto |
+| `INICIO_RAPIDO.md` | Guía para comenzar rápidamente |
+| `API_DOCS.md` | Documentación de los endpoints API |
+| `.gitignore` | Archivos que git debe ignorar |
+
+### public/ - Carpeta Pública
+
+Contiene todos los archivos que accede el navegador del usuario.
+
+```
+public/
+├── index.html          → Estructura HTML (formularios, tabs)
+├── 404.html           → Página de error 404
+├── css/
+│   └── styles.css     → Estilos visuales (colores, diseño, responsive)
+├── js/
+│   └── script.js      → Lógica interactiva (búsqueda, comparación)
+└── images/            → Imágenes locales del sitio
+```
+
+**Flujo Frontend:**
+1. Usuario abre `index.html`
+2. Se carga `styles.css` para el diseño
+3. Se carga `script.js` para la interactividad
+4. JavaScript envía peticiones al backend
+
+### src/ - Código Backend
+
+Contiene la lógica del servidor (PHP).
+
+#### src/controllers/ - Controladores
+
+Reciben solicitudes HTTP y orquestan la respuesta.
+
+**PokemonController.php**
+```
+├── search($name)      → Busca un Pokémon
+└── compare($p1, $p2)  → Compara dos Pokémon
+```
+
+**StatsController.php**
+```
+├── calculateStats($stats)
+└── compareStats($s1, $s2)
+```
+
+#### src/models/ - Modelos
+
+Define la estructura de datos del Pokémon.
+
+**Pokemon.php**
+```
+Properties:
+├── id
+├── name
+├── type
+├── hp
+├── attack
+├── defense
+├── spAtk
+├── spDef
+├── speed
+└── image
+
+Methods:
+├── getTotalStats()
+└── toArray()
+```
+
+#### src/services/ - Servicios
+
+Contiene la lógica de negocio.
+
+**PokemonService.php**
+```
+├── searchByName($name)      → Busca en PokéAPI
+├── comparePokemon($p1, $p2) → Compara estadísticas
+└── fetchFromAPI($name)      → Obtiene datos de API
+```
+
+**StatsService.php**
+```
+├── calculateCustomStats($stats)      → Calcula estadísticas
+└── compareCustomStats($s1, $s2)      → Compara dos conjuntos
+```
+
+#### src/utils/ - Utilidades
+
+Funciones auxiliares reutilizables.
+
+**Helper.php**
+```
+├── isValidPokemonName()
+├── cleanPokemonName()
+├── isValidStatValue()
+├── getTypeColor()
+├── formatStat()
+├── getStatPercentage()
+└── getBestAndWorstStats()
+```
+
+---
+
+## 🔄 Flujo de Solicitudes
+
+### Buscar Pokémon
+
+```
+1. Usuario escribe "Pikachu" en HTML
+                ↓
+2. JavaScript captura evento (script.js)
+                ↓
+3. JavaScript hace: fetch('/api/pokemon/search?name=pikachu')
+                ↓
+4. PHP (index.php) recibe la solicitud
+                ↓
+5. PokemonController.search() se ejecuta
+                ↓
+6. PokemonService.searchByName() busca en PokéAPI
+                ↓
+7. Respuesta se convierte a modelo Pokemon
+                ↓
+8. JSON se retorna al navegador
+                ↓
+9. JavaScript (script.js) recibe el JSON
+                ↓
+10. Función displayPokemonCard() renderiza el HTML
+                ↓
+11. Usuario ve los resultados
+```
+
+### Comparar Pokémon
+
+```
+1. Usuario ingresa dos nombres
+                ↓
+2. JavaScript hace dos búsquedas en paralelo
+                ↓
+3. PokemonService.comparePokemon() compara datos
+                ↓
+4. Se genera tabla comparativa
+                ↓
+5. Se envía JSON al navegador
+                ↓
+6. displayComparison() renderiza resultados
+```
+
+### Estadísticas Personalizadas
+
+```
+1. Usuario ingresa 6 valores de estadísticas
+                ↓
+2. JavaScript calcula:
+   - Total
+   - Promedio
+   - Máximo
+   - Mínimo
+                ↓
+3. Resultados se muestran en HTML
+```
+
+---
+
+## 🔧 Patrones de Diseño Utilizados
+
+### Patrón MVC (Model-View-Controller)
+
+**Model (Modelo)** → `src/models/Pokemon.php`
+- Estructura de datos
+- Lógica de datos
+
+**View (Vista)** → `public/index.html` + `public/css/styles.css`
+- Interfaz de usuario
+- Presentación
+
+**Controller (Controlador)** → `src/controllers/`
+- Recibe solicitudes
+- Orquestra respuesta
+
+### Patrón Service
+
+**Service (Servicio)** → `src/services/`
+- Lógica de negocio
+- Operaciones complejas
+- Acceso a APIs externas
+
+### Patrón Helper/Utility
+
+**Helper** → `src/utils/Helper.php`
+- Funciones reutilizables
+- Validaciones
+- Formatting
+
+---
+
+## 📊 Dependencias Externas
+
+### APIs
+- **PokéAPI** (https://pokeapi.co/)
+  - Proporciona datos de Pokémon
+  - Gratuito y sin autenticación
+
+### Tecnologías
+- **PHP 7.2+** (servidor)
+- **HTML5** (estructura)
+- **CSS3** (estilos)
+- **JavaScript ES6** (frontend)
+
+### Sin dependencias adicionales
+- No requiere base de datos
+- No requiere librerías externas
+- Todo es vanilla (HTML, CSS, JS, PHP)
+
+---
+
+## ✨ Características Implementadas
+
+✅ Búsqueda de Pokémon
+✅ Comparación de Pokémon
+✅ Estadísticas personalizadas
+✅ Interfaz responsiva
+✅ Carga asíncrona
+✅ Validación de datos
+✅ Manejo de errores
+✅ Documentación completa
+
+---
+
+## 🚀 Cómo Agregar Nueva Funcionalidad
+
+### Ejemplo: Agregar búsqueda por tipo
+
+1. **Crear nuevo método en PokemonService**
+   ```php
+   public function searchByType($type) { ... }
+   ```
+
+2. **Agregar método en PokemonController**
+   ```php
+   public function searchByType($type) { ... }
+   ```
+
+3. **Agregar ruta en index.php**
+   ```php
+   if ($request === '/api/pokemon/type') {
+       $controller->searchByType($_GET['type']);
+   }
+   ```
+
+4. **Agregar función en script.js**
+   ```javascript
+   function searchByType() { ... }
+   ```
+
+5. **Agregar HTML y botón en index.html**
+
+---
+
+## 📝 Notas Importantes
+
+- El proyecto está diseñado para ser escalable
+- Fácil agregar nuevas funciones
+- Separación de responsabilidades clara
+- Código bien documentado
+- Manejo de errores robusto
+
+---
+
+Generated: 2025-12-10
+Version: 1.0.0

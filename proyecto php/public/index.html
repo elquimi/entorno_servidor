@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Calculator - Calculadora y Comparador de Pokémon</title>
+    <base href="/temp/proyecto%20php/public/">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔴 Pokémon Calculator</h1>
+            <p>Busca, compara y analiza estadísticas de Pokémon</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="search">Buscar Pokémon</button>
+            <button class="nav-tab" data-tab="compare">Comparar Pokémon</button>
+            <button class="nav-tab" data-tab="custom-stats">Estadísticas Personalizadas</button>
+        </nav>
+
+        <!-- Tab 1: Search with list -->
+        <section id="search" class="tab-content active layout">
+            <aside class="list-panel">
+                <div class="list-header">
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre..." autocomplete="off">
+                </div>
+                <ul id="pokemonList" class="pokemon-list"></ul>
+            </aside>
+            <div class="content-panel">
+                <h2>Detalles</h2>
+                <div id="searchResults" class="results-container"></div>
+            </div>
+        </section>
+
+        <!-- Tab 2: Compare -->
+        <section id="compare" class="tab-content">
+            <h2>Comparar Pokémon</h2>
+            <div class="compare-container">
+                <div class="compare-input">
+                    <label>Pokémon 1:</label>
+                    <input type="text" id="comparePokemon1" placeholder="Nombre del primer Pokémon..." autocomplete="off">
+                </div>
+                <div class="vs-label">VS</div>
+                <div class="compare-input">
+                    <label>Pokémon 2:</label>
+                    <input type="text" id="comparePokemon2" placeholder="Nombre del segundo Pokémon..." autocomplete="off">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="comparePokemon()">Comparar</button>
+            <div id="compareResults" class="results-container"></div>
+        </section>
+
+        <!-- Tab 3: Custom Stats -->
+        <section id="custom-stats" class="tab-content">
+            <h2>Estadísticas Personalizadas</h2>
+            <div class="stats-form">
+                <div class="stats-group">
+                    <label>HP:</label>
+                    <input type="number" id="hp" min="0" max="255" value="100">
+                </div>
+                <div class="stats-group">
+                    <label>Ataque:</label>
+                    <input type="number" id="attack" min="0" max="255" value="100">
+                </div>
+                <div class="stats-group">
+                    <label>Defensa:</label>
+                    <input type="number" id="defense" min="0" max="255" value="100">
+                </div>
+                <div class="stats-group">
+                    <label>Ataque Esp.:</label>
+                    <input type="number" id="spAtk" min="0" max="255" value="100">
+                </div>
+                <div class="stats-group">
+                    <label>Defensa Esp.:</label>
+                    <input type="number" id="spDef" min="0" max="255" value="100">
+                </div>
+                <div class="stats-group">
+                    <label>Velocidad:</label>
+                    <input type="number" id="speed" min="0" max="255" value="100">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="calculateCustomStats()">Calcular Estadísticas</button>
+            <div id="customStatsResults" class="results-container"></div>
+        </section>
+    </div>
+
+    <script src="js/script.js"></script>
+    <script>
+        // Inicializar carga de lista al abrir
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPokemonList();
+            const input = document.getElementById('searchInput');
+            input.addEventListener('input', () => filterPokemonList(input.value));
+        });
+    </script>
+</body>
+</html>

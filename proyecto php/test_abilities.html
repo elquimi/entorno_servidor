@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Abilities Endpoint</title>
+</head>
+<body>
+    <h1>Test Abilities Endpoint</h1>
+    <button onclick="testAbilities()">Test Pikachu</button>
+    <pre id="output"></pre>
+    
+    <script>
+        const BASE_PATH = '/temp/proyecto%20php';
+        
+        function testAbilities() {
+            const pokemonName = 'pikachu';
+            const url = `${BASE_PATH}/api/team/pokemon/abilities/${encodeURIComponent(pokemonName)}`;
+            
+            document.getElementById('output').innerHTML = `Testing: ${url}\n\n`;
+            
+            fetch(url)
+                .then(r => {
+                    document.getElementById('output').innerHTML += `Status: ${r.status}\n`;
+                    return r.json();
+                })
+                .then(data => {
+                    document.getElementById('output').innerHTML += `Response:\n${JSON.stringify(data, null, 2)}`;
+                })
+                .catch(err => {
+                    document.getElementById('output').innerHTML += `Error: ${err.message}`;
+                });
+        }
+    </script>
+</body>
+</html>

@@ -89,7 +89,8 @@ function filterPokemonList(query) {
         renderPokemonList(fullPokemonList);
         return;
     }
-    const filtered = fullPokemonList.filter(p => (p.name || '').toLowerCase().includes(q));
+    // Solo mostrar Pokémon que empiezan con el query
+    const filtered = fullPokemonList.filter(p => (p.name || '').toLowerCase().startsWith(q));
     renderPokemonList(filtered);
 }
 
@@ -532,23 +533,25 @@ function getSuggestions(query, inputId) {
         return;
     }
 
+    const q = query.toLowerCase().trim();
+    
     // Cancelar petición anterior si existe
     if (debounceTimers[inputId]) {
         clearTimeout(debounceTimers[inputId]);
     }
 
-    // Debounce: esperar 300ms antes de hacer la petición
+    // Debounce: esperar 300ms antes de filtrar
     debounceTimers[inputId] = setTimeout(() => {
-        fetch(`${BASE_PATH}/api/pokemon/search-partial?q=${encodeURIComponent(query)}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data.success && data.data && data.data.length > 0) {
-                    displaySuggestions(data.data, inputId);
-                } else {
-                    suggestionsList.classList.remove('active');
-                }
-            })
-            .catch(() => suggestionsList.classList.remove('active'));
+        // Filtrar localmente de la lista completa
+        const filtered = fullPokemonList.filter(p => 
+            (p.name || '').toLowerCase().startsWith(q)
+        );
+        
+        if (filtered.length > 0) {
+            displaySuggestions(filtered, inputId);
+        } else {
+            suggestionsList.classList.remove('active');
+        }
     }, 300);
 }
 
@@ -558,6 +561,9 @@ function getSuggestions(query, inputId) {
 function displaySuggestions(suggestions, inputId) {
     const suggestionsList = document.getElementById(`suggestions${inputId === 'comparePokemon1' ? '1' : '2'}`);
     suggestionsList.innerHTML = '';
+
+    // Ordenar alfabéticamente
+    suggestions.sort((a, b) => (a.name || '').localeCompare((b.name || ''), 'es'));
 
     suggestions.forEach((pokemon, index) => {
         const li = document.createElement('li');

@@ -208,6 +208,26 @@ class TeamController
     }
 
     /**
+     * Obtiene habilidades de un Pokémon específico
+     */
+    public function getPokemonAbilities($pokemonName)
+    {
+        try {
+            error_log("[getPokemonAbilities] Called with: $pokemonName");
+            $abilities = $this->teamService->getPokemonAbilities($pokemonName);
+            error_log("[getPokemonAbilities] Result: " . json_encode($abilities));
+            echo json_encode([
+                'success' => true,
+                'data' => $abilities
+            ]);
+        } catch (\Exception $e) {
+            error_log("[getPokemonAbilities] Exception: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Elimina un equipo
      */
     public function delete($teamId)

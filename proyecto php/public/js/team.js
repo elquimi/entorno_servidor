@@ -1,9 +1,26 @@
-// ==================== Team Management ====================
-
 let currentTeam = null;
 let allMoves = [];
+let allPokemon = []; // Todos los Pokémon disponibles para búsqueda
+let editingPokemonId = null; // ID del pokémon siendo editado
 let currentPokemonType = 'existing'; // existing o custom
 let selectedBasePokemon = null;
+let selectedMovesForTeam = []; // Movimientos seleccionados para el Pokémon actual
+let allAvailableMoves = []; // Todos los movimientos del Pokémon seleccionado
+
+/**
+ * Carga todos los Pokémon disponibles
+ */
+function loadAllPokemon() {
+    fetch(`${BASE_PATH}/api/pokemon/list`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.data) {
+                allPokemon = data.data;
+                console.log('Pokémon cargados:', allPokemon.length);
+            }
+        })
+        .catch(err => console.error('Error loading pokemon list:', err));
+}
 
 /**
  * Carga los movimientos disponibles
@@ -78,6 +95,11 @@ function switchPokemonType(type, event) {
 function resetForms() {
     resetExistingForm();
     resetCustomForm();
+    editingPokemonId = null;
+    
+    // Cambiar botón de vuelta a "Agregar"
+    const saveBtn = document.querySelector('button[onclick="savePokemonToTeam()"]');
+    if (saveBtn) saveBtn.textContent = 'Agregar al Equipo';
 }
 
 /**
@@ -88,7 +110,9 @@ function resetExistingForm() {
     document.getElementById('existingPokemonInfo').innerHTML = '';
     document.getElementById('existingAbilitiesSection').style.display = 'none';
     document.getElementById('existingMovesSection').style.display = 'none';
+    document.getElementById('existingMoveSearch').value = '';
     selectedBasePokemon = null;
+    selectedMovesForTeam = [];
 }
 
 /**
@@ -113,14 +137,14 @@ function resetCustomForm() {
 function getSuggestionsForTeam(query) {
     if (!query || query.length < 1) return;
     
-    fetch(`${BASE_PATH}/api/pokemon/search-partial?q=${encodeURIComponent(query)}`)
-        .then(r => r.json())
-        .then(data => {
-            if (data.success && data.data) {
-                displayTeamSuggestions(data.data);
-            }
-        })
-        .catch(err => console.error(err));
+    const q = query.toLowerCase().trim();
+    
+    // Filtrar solo Pokémon que empiezan con el query
+    const filtered = allPokemon.filter(pokemon => 
+        (pokemon.name || '').toLowerCase().startsWith(q)
+    );
+    
+    displayTeamSuggestions(filtered);
 }
 
 /**
@@ -129,6 +153,9 @@ function getSuggestionsForTeam(query) {
 function displayTeamSuggestions(suggestions) {
     const list = document.getElementById('existingSuggestions');
     list.innerHTML = '';
+    
+    // Ordenar alfabéticamente
+    suggestions.sort((a, b) => (a.name || '').localeCompare((b.name || ''), 'es'));
     
     suggestions.forEach(pokemon => {
         const li = document.createElement('li');
@@ -151,6 +178,7 @@ function displayTeamSuggestions(suggestions) {
  * Selecciona un Pokémon existente para el equipo
  */
 function selectExistingPokemon(pokemonName) {
+    console.log('selectExistingPokemon called with:', pokemonName);
     document.getElementById('existingPokeName').value = pokemonName;
     document.getElementById('existingSuggestions').classList.remove('active');
     
@@ -159,6 +187,7 @@ function selectExistingPokemon(pokemonName) {
         .then(r => r.json())
         .then(data => {
             if (data.success && data.data) {
+                console.log('Pokemon data fetched:', data.data);
                 selectedBasePokemon = data.data;
                 displayExistingPokemonInfo(data.data);
                 loadExistingAbilities(pokemonName);
@@ -200,11 +229,80 @@ function loadExistingAbilities(pokemonName) {
     const section = document.getElementById('existingAbilitiesSection');
     const select = document.getElementById('existingAbility');
     
-    // Por ahora, mostrar una habilidad por defecto
-    section.style.display = 'block';
-    select.innerHTML = `
-        <option value="Habilidad estándar">Habilidad estándar</option>
-    `;
+    console.log('🔎 Verificando elementos DOM:');
+    console.log('   section existe:', !!section);
+    console.log('   select existe:', !!select);
+    if (section) console.log('   section.style.display:', section.style.display);
+    if (select) console.log('   select.style.display:', select.style.display);
+    
+    if (!pokemonName || pokemonName.trim() === '') {
+        section.style.display = 'none';
+        return;
+    }
+    
+    const url = `${BASE_PATH}/api/team/pokemon/abilities/${encodeURIComponent(pokemonName)}`;
+    console.log('🔍 Cargando habilidades para:', pokemonName);
+    console.log('📍 URL:', url);
+    
+    fetch(url)
+        .then(response => {
+            console.log('📡 Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('✅ Data recibido:', data);
+            
+            if (!data.success) {
+                console.warn('❌ Response no exitosa:', data);
+                section.style.display = 'none';
+                return;
+            }
+            
+            if (!data.data || data.data.length === 0) {
+                console.warn('⚠️ No hay habilidades en los datos');
+                section.style.display = 'none';
+                return;
+            }
+            
+            // Filtrar habilidades (priorizando no ocultas)
+            const abilities = data.data;
+            console.log('📋 Todas las habilidades:', abilities);
+            const normalAbility = abilities.find(a => !a.isHidden);
+            const selectedAbility = normalAbility || abilities[0];
+            
+            console.log('🎯 Habilidad seleccionada:', selectedAbility);
+            console.log('🎯 Nombre:', selectedAbility?.name);
+            console.log('🎯 Original:', selectedAbility?.original);
+            
+            // Mostrar sección y establecer habilidad
+            console.log('👁️ Haciendo visible la sección...');
+            section.style.display = 'block';
+            console.log('👁️ Después de display=block:', section.style.display);
+            
+            // Construir opciones para TODAS las habilidades
+            let html = '';
+            abilities.forEach(ability => {
+                const abilityName = ability.name || ability.original || 'Sin nombre';
+                const isSelected = (ability === selectedAbility) ? 'selected' : '';
+                html += `<option value="${abilityName}" ${isSelected}>${abilityName}</option>`;
+            });
+            
+            console.log('📝 HTML a insertar (todas las habilidades):', html);
+            select.innerHTML = html;
+            console.log('✨ Habilidades establecidas en el select');
+            console.log('📝 Select value después:', select.value);
+            console.log('📝 Select options:', select.options.length, 'opciones');
+            for (let i = 0; i < select.options.length; i++) {
+                console.log(`   Opción ${i}:`, select.options[i].value, '=', select.options[i].text);
+            }
+        })
+        .catch(error => {
+            console.error('💥 Error al cargar habilidades:', error);
+            section.style.display = 'none';
+        });
 }
 
 /**
@@ -213,19 +311,112 @@ function loadExistingAbilities(pokemonName) {
 function loadExistingMoves(pokemonName) {
     const section = document.getElementById('existingMovesSection');
     const movesList = document.getElementById('existingMovesList');
+    const searchInput = document.getElementById('existingMoveSearch');
     
-    fetch(`${BASE_PATH}/api/team/${currentTeam?.id || 'default'}/pokemon/moves/${encodeURIComponent(pokemonName)}`)
+    fetch(`${BASE_PATH}/api/team/pokemon/moves/${encodeURIComponent(pokemonName)}`)
         .then(r => r.json())
         .then(data => {
-            if (data.success && data.data) {
+            if (data.success && data.data && data.data.length > 0) {
                 section.style.display = 'block';
-                displayMoveCheckboxes(data.data, movesList, true);
+                allAvailableMoves = data.data;
+                
+                // Solo limpiar si NO estamos editando (preservar movimientos seleccionados)
+                if (!editingPokemonId) {
+                    selectedMovesForTeam = [];
+                }
+                
+                renderExistingMovesList(allAvailableMoves);
+                
+                // Event listener para búsqueda de movimientos
+                searchInput.addEventListener('input', (e) => filterExistingMoves(e.target.value));
+            } else {
+                section.style.display = 'none';
             }
         })
         .catch(err => {
-            section.style.display = 'block';
-            movesList.innerHTML = '<p style="color: #999;">No se pudieron cargar los movimientos</p>';
+            console.error(err);
+            section.style.display = 'none';
         });
+}
+
+/**
+ * Filtra los movimientos disponibles
+ */
+function filterExistingMoves(query) {
+    const q = (query || '').trim().toLowerCase();
+    
+    // Filtrar solo movimientos que empiezan con el query
+    const filtered = allAvailableMoves.filter(move => 
+        (move.name || move).toLowerCase().startsWith(q)
+    );
+    
+    // Ordenar alfabéticamente
+    filtered.sort((a, b) => {
+        const aName = (typeof a === 'string' ? a : (a.name || a.original || '')).toLowerCase();
+        const bName = (typeof b === 'string' ? b : (b.name || b.original || '')).toLowerCase();
+        return aName.localeCompare(bName, 'es');
+    });
+    
+    renderExistingMovesList(filtered);
+}
+
+/**
+ * Renderiza la lista de movimientos del Pokémon existente
+ */
+function renderExistingMovesList(moves) {
+    const container = document.getElementById('existingMovesList');
+    container.innerHTML = '';
+    
+    moves.forEach((move, idx) => {
+        const moveName = typeof move === 'string' ? move : (move.name || move.original);
+        const li = document.createElement('li');
+        const isSelected = selectedMovesForTeam.includes(moveName);
+        li.className = 'move-item' + (isSelected ? ' selected' : '');
+        li.style.marginBottom = '8px';
+        
+        li.innerHTML = `
+            <input type="checkbox" class="move-checkbox" value="${moveName}" ${isSelected ? 'checked' : ''}>
+            <span class="move-name">${moveName}</span>
+        `;
+        
+        const checkbox = li.querySelector('.move-checkbox');
+        checkbox.addEventListener('change', (e) => {
+            toggleExistingMove(moveName, e.target.checked);
+            // Actualizar clase del contenedor
+            if (e.target.checked) {
+                li.classList.add('selected');
+            } else {
+                li.classList.remove('selected');
+            }
+        });
+        
+        // Hacer que todo el contenedor sea clickeable
+        li.addEventListener('click', (e) => {
+            if (e.target !== checkbox) {
+                checkbox.click();
+            }
+        });
+        
+        container.appendChild(li);
+    });
+}
+
+/**
+ * Alterna un movimiento seleccionado
+ */
+function toggleExistingMove(moveName, isChecked) {
+    if (isChecked) {
+        if (selectedMovesForTeam.length < 4) {
+            selectedMovesForTeam.push(moveName);
+        } else {
+            // No permitir más de 4 movimientos
+            document.querySelectorAll('.move-checkbox').forEach(cb => {
+                if (cb.value === moveName) cb.checked = false;
+            });
+        }
+    } else {
+        selectedMovesForTeam = selectedMovesForTeam.filter(m => m !== moveName);
+    }
 }
 
 /**
@@ -279,10 +470,6 @@ function savePokemonToTeam() {
             return;
         }
         
-        const selectedMoves = Array.from(document.querySelectorAll('#existingMovesList input[name="move"]:checked'))
-            .map(cb => cb.value)
-            .slice(0, 4);
-        
         pokemonData = {
             isCustom: false,
             nickname: selectedBasePokemon.name,
@@ -295,7 +482,7 @@ function savePokemonToTeam() {
             spDef: selectedBasePokemon.spDef,
             speed: selectedBasePokemon.speed,
             ability: document.getElementById('existingAbility').value,
-            moves: selectedMoves,
+            moves: selectedMovesForTeam.slice(0, 4),
             type: selectedBasePokemon.type,
             image: selectedBasePokemon.image
         };
@@ -331,25 +518,48 @@ function savePokemonToTeam() {
         };
     }
     
-    // Agregar al equipo en el backend
+    // Agregar o actualizar en el equipo
     const teamId = currentTeam.id || 'default';
-    fetch(`${BASE_PATH}/api/team/${teamId}/pokemon/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pokemonData)
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            currentTeam = data.data;
-            renderTeam();
-            closeCreatePokemonModal();
-            showSuccess('¡Pokémon agregado al equipo!');
-        } else {
-            showError(data.error || 'Error al agregar Pokémon');
-        }
-    })
-    .catch(err => showError('Error: ' + err.message));
+    
+    if (editingPokemonId) {
+        // Estamos editando un pokémon existente
+        fetch(`${BASE_PATH}/api/team/${teamId}/pokemon/${editingPokemonId}/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pokemonData)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                currentTeam = data.data;
+                renderTeam();
+                closeCreatePokemonModal();
+                showSuccess('¡Pokémon actualizado!');
+            } else {
+                showError(data.error || 'Error al actualizar Pokémon');
+            }
+        })
+        .catch(err => showError('Error: ' + err.message));
+    } else {
+        // Creando un pokémon nuevo
+        fetch(`${BASE_PATH}/api/team/${teamId}/pokemon/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pokemonData)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                currentTeam = data.data;
+                renderTeam();
+                closeCreatePokemonModal();
+                showSuccess('¡Pokémon agregado al equipo!');
+            } else {
+                showError(data.error || 'Error al agregar Pokémon');
+            }
+        })
+        .catch(err => showError('Error: ' + err.message));
+    }
 }
 
 /**
@@ -363,7 +573,7 @@ function renderTeam() {
     }
     
     grid.innerHTML = currentTeam.members.map(pokemon => `
-        <div class="team-pokemon-card">
+        <div class="team-pokemon-card" onclick="showTeamPokemonDetail('${pokemon.id}')">
             <img src="${pokemon.image}" alt="${pokemon.nickname}" onerror="this.style.display='none'">
             <div class="nickname">${pokemon.nickname}</div>
             <div class="pokemon-type">${pokemon.type || 'Sin tipo'}</div>
@@ -371,7 +581,7 @@ function renderTeam() {
                 <span>HP: <strong>${pokemon.hp}</strong></span>
                 <span>Atk: <strong>${pokemon.attack}</strong></span>
             </div>
-            <div class="team-pokemon-actions">
+            <div class="team-pokemon-actions" onclick="event.stopPropagation();">
                 <button class="btn-small btn-edit" onclick="editPokemon('${pokemon.id}')">Editar</button>
                 <button class="btn-small btn-delete" onclick="removePokemon('${pokemon.id}')">Eliminar</button>
             </div>
@@ -383,8 +593,140 @@ function renderTeam() {
  * Edita un Pokémon del equipo
  */
 function editPokemon(pokemonId) {
-    console.log('Editar Pokémon:', pokemonId);
-    // Implementar edición
+    if (!currentTeam) return;
+    
+    const pokemon = currentTeam.members.find(p => p.id === pokemonId);
+    if (!pokemon) return;
+    
+    console.log('Editando Pokémon:', pokemon);
+    
+    // Establecer ID de pokémon siendo editado
+    editingPokemonId = pokemonId;
+    
+    // Cambiar botón a "Guardar"
+    const saveBtn = document.querySelector('button[onclick="savePokemonToTeam()"]');
+    if (saveBtn) saveBtn.textContent = 'Guardar Cambios';
+    
+    // Abrir modal de edición
+    const modal = document.getElementById('createPokemonModal');
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Determinar si es un pokémon existente o personalizado
+    if (pokemon.isCustom) {
+        // Mostrar formulario de pokémon personalizado
+        switchPokemonType('custom');
+        
+        // Rellenar campos
+        document.getElementById('customNickname').value = pokemon.nickname || '';
+        document.getElementById('customPokeType').value = pokemon.type || '';
+        document.getElementById('customHP').value = pokemon.hp || 100;
+        document.getElementById('customAtk').value = pokemon.attack || 100;
+        document.getElementById('customDef').value = pokemon.defense || 100;
+        document.getElementById('customSpAtk').value = pokemon.spAtk || 100;
+        document.getElementById('customSpDef').value = pokemon.spDef || 100;
+        document.getElementById('customSpeed').value = pokemon.speed || 100;
+        document.getElementById('customAbility').value = pokemon.ability || '';
+        document.getElementById('customMoves').value = (pokemon.moves || []).join(', ');
+    } else {
+        // Mostrar formulario de pokémon existente
+        switchPokemonType('existing');
+        
+        // Precargar movimientos seleccionados
+        selectedMovesForTeam = pokemon.moves || [];
+        
+        // Rellenar campo de búsqueda
+        document.getElementById('existingPokeName').value = pokemon.basePokemonName || '';
+        selectedBasePokemon = pokemon;
+        displayExistingPokemonInfo(pokemon);
+        loadExistingAbilities(pokemon.basePokemonName);
+        loadExistingMoves(pokemon.basePokemonName);
+    }
+}
+
+/**
+ * Muestra detalles grandes de un Pokémon del equipo
+ */
+function showTeamPokemonDetail(pokemonId) {
+    if (!currentTeam) return;
+    
+    const pokemon = currentTeam.members.find(p => p.id === pokemonId);
+    if (!pokemon) return;
+    
+    const typeColors = {
+        'Normal': '#A8A77A', 'Fuego': '#EE8130', 'Agua': '#6390F0', 'Eléctrico': '#F7D02C',
+        'Planta': '#7AC74C', 'Hielo': '#96D9D6', 'Lucha': '#C22E28', 'Veneno': '#A33EA1', 'Tierra': '#E2BF65',
+        'Volador': '#A98FF3', 'Psíquico': '#F95587', 'Bicho': '#A6B91A', 'Roca': '#B6A136', 'Fantasma': '#735797',
+        'Dragón': '#6F35FC', 'Siniestro': '#705746', 'Acero': '#B7B7CE', 'Hada': '#D685AD'
+    };
+    
+    const types = (pokemon.type || '').split(',').map(t => t.trim()).filter(Boolean);
+    const badge = t => `<span class="badge" style="background:${typeColors[t]||'#888'}">${t}</span>`;
+    
+    const maxStat = 255;
+    const percent = v => Math.max(0, Math.min(100, Math.round((v / maxStat) * 100)));
+    
+    const html = `
+        <div class="infobox">
+            <div class="infobox-header">
+                <div>
+                    <div class="infobox-title">${pokemon.nickname}</div>
+                    <div class="infobox-subtitle">${pokemon.isCustom ? 'Pokémon Personalizado' : pokemon.basePokemonName}</div>
+                </div>
+            </div>
+            ${pokemon.image ? `
+            <div class="infobox-image">
+                <img src="${pokemon.image}" alt="${pokemon.nickname}">
+            </div>` : ''}
+            <div class="badges">${types.map(badge).join('')}</div>
+            <div class="stats">
+                ${[
+                    ['HP', pokemon.hp],
+                    ['Ataque', pokemon.attack],
+                    ['Defensa', pokemon.defense],
+                    ['At. esp.', pokemon.spAtk],
+                    ['Def. esp.', pokemon.spDef],
+                    ['Velocidad', pokemon.speed]
+                ].map(([label, val]) => `
+                <div class="stat-row">
+                    <span class="stat-label">${label}</span>
+                    <div class="stat-bar">
+                        <div class="stat-bar-fill" style="width: ${percent(val)}%; background: linear-gradient(90deg, #667eea, #764ba2)"></div>
+                    </div>
+                    <span class="stat-value">${val}</span>
+                </div>
+                `).join('')}
+            </div>
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                <div style="margin-bottom: 15px;">
+                    <strong>Habilidad:</strong> ${pokemon.ability || 'N/A'}
+                </div>
+                <div>
+                    <strong>Ataques:</strong>
+                    <ul style="list-style: none; padding: 10px 0; margin: 0;">
+                        ${(pokemon.moves || []).map(move => `<li style="padding: 5px 0;">• ${move}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modal = document.getElementById('teamPokemonDetailModal');
+    const body = document.getElementById('teamPokemonDetailBody');
+    body.innerHTML = html;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+/**
+ * Cierra el modal de detalles del Pokémon del equipo
+ */
+function closeTeamPokemonDetail() {
+    const modal = document.getElementById('teamPokemonDetailModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
 }
 
 /**
@@ -453,6 +795,7 @@ function createNewTeam() {
  */
 document.addEventListener('DOMContentLoaded', () => {
     initializeTeam();
+    loadAllPokemon();
     loadAvailableMoves();
     
     // Event listeners para autocompletado del equipo
@@ -475,6 +818,23 @@ document.addEventListener('DOMContentLoaded', () => {
             selectExistingPokemon(pokemonName);
         }
     });
+    
+    // Cerrar modales al hacer clic en el overlay
+    const createPokemonModal = document.getElementById('createPokemonModal');
+    if (createPokemonModal) {
+        const overlay = createPokemonModal.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', closeCreatePokemonModal);
+        }
+    }
+    
+    const teamDetailModal = document.getElementById('teamPokemonDetailModal');
+    if (teamDetailModal) {
+        const overlay = teamDetailModal.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', closeTeamPokemonDetail);
+        }
+    }
 });
 
 // Funciones auxiliares

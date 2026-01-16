@@ -202,7 +202,11 @@
                     <select id="existingAbility"></select>
                 </div>
                 <div id="existingMovesSection" class="form-group" style="display:none;">
-                    <label>Ataques (máximo 4):</label>
+                    <label>Ataques (máximo 4, usa el buscador):</label>
+                    <div class="autocomplete-wrapper" style="margin-bottom: 15px;">
+                        <input type="text" id="existingMoveSearch" placeholder="Buscar ataque..." autocomplete="off">
+                        <ul id="existingMoveSuggestions" class="autocomplete-list"></ul>
+                    </div>
                     <div class="moves-list" id="existingMovesList"></div>
                 </div>
             </div>
@@ -297,5 +301,13 @@
             </div>
             <input type="text" id="selectorSearch" placeholder="Buscar..." autocomplete="off">
             <div id="selectorList" class="selector-list"></div>
+        </div>
+    </div>
+    <!-- Modal para detalles grandes del Pokémon del equipo -->
+    <div id="teamPokemonDetailModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content large-modal">
+            <button class="modal-close" onclick="closeTeamPokemonDetail()">&times;</button>
+            <div id="teamPokemonDetailBody"></div>
         </div>
     </div>

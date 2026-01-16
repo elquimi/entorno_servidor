@@ -24,14 +24,20 @@ spl_autoload_register(function ($class) {
 $basePath = '/temp/proyecto php';
 $request = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 
+error_log("[Router] REQUEST_URI: " . $_SERVER['REQUEST_URI']);
+error_log("[Router] Parsed: " . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+error_log("[Router] After urldecode: " . $request);
+
 // Remover la ruta base del proyecto (maneja espacios)
 if (strpos($request, $basePath) === 0) {
     $request = substr($request, strlen($basePath));
+    error_log("[Router] After removing base: " . $request);
 }
 
 // Asegurar que empiece con /
 if (empty($request) || $request[0] !== '/') {
     $request = '/' . $request;
+    error_log("[Router] After ensuring /: " . $request);
 }
 
 // Router simple
@@ -75,6 +81,16 @@ if ($request === '/' || $request === '' || $request === '/index.php') {
     } elseif ($request === '/api/team/moves') {
         $controller = new controllers\TeamController();
         $controller->getMoves();
+    } elseif (preg_match('#^/api/team/pokemon/abilities/([^/]+)$#', $request, $matches)) {
+        error_log("[Router] Matched abilities route with pokemonName: " . $matches[1]);
+        $pokemonName = urldecode($matches[1]);
+        error_log("[Router] After urldecode: " . $pokemonName);
+        $controller = new controllers\TeamController();
+        $controller->getPokemonAbilities($pokemonName);
+    } elseif (preg_match('#^/api/team/pokemon/moves/([^/]+)$#', $request, $matches)) {
+        $pokemonName = urldecode($matches[1]);
+        $controller = new controllers\TeamController();
+        $controller->getPokemonMoves($pokemonName);
     } elseif (preg_match('#^/api/team/([^/]+)$#', $request, $matches)) {
         $teamId = $matches[1];
         $controller = new controllers\TeamController();

@@ -220,7 +220,7 @@ class TeamService
                 return [];
             }
 
-            // Extraer nombres de movimientos
+            // Extraer nombres de movimientos - TODOS
             $moves = [];
             foreach ($data['moves'] as $moveData) {
                 if (isset($moveData['move']['name'])) {
@@ -231,8 +231,84 @@ class TeamService
                 }
             }
 
-            return array_slice(array_unique($moves, SORT_REGULAR), 0, 10); // Top 10 movimientos
+            // Remover duplicados y devolver todos
+            return array_values(array_unique($moves, SORT_REGULAR));
         } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Obtiene habilidades de un Pokémon específico
+     */
+    public function getPokemonAbilities($pokemonName)
+    {
+        try {
+            if (empty($pokemonName)) {
+                error_log("[getPokemonAbilities] Empty pokemon name");
+                return [];
+            }
+
+            error_log("[getPokemonAbilities] Starting for: $pokemonName");
+
+            // Normalizar el nombre del Pokémon
+            $pokemonName = trim($pokemonName);
+            $normalizedName = strtolower(str_replace(' ', '-', $pokemonName));
+            
+            // Obtener datos de la API
+            $url = "https://pokeapi.co/api/v2/pokemon/" . urlencode($normalizedName);
+            error_log("[getPokemonAbilities] URL: $url");
+            
+            $context = stream_context_create([
+                'http' => ['timeout' => 5, 'ignore_errors' => true]
+            ]);
+            $response = @file_get_contents($url, false, $context);
+            
+            if ($response === false) {
+                error_log("[getPokemonAbilities] First attempt failed, trying original name");
+                // Intentar con el nombre original si falla
+                $url = "https://pokeapi.co/api/v2/pokemon/" . urlencode(strtolower($pokemonName));
+                error_log("[getPokemonAbilities] Retry URL: $url");
+                $response = @file_get_contents($url, false, $context);
+                if ($response === false) {
+                    error_log("[getPokemonAbilities] Both attempts failed");
+                    return [];
+                }
+            }
+
+            $data = json_decode($response, true);
+            error_log("[getPokemonAbilities] API Response length: " . strlen($response));
+            
+            if (!isset($data['abilities']) || !is_array($data['abilities'])) {
+                error_log("[getPokemonAbilities] No abilities in response");
+                return [];
+            }
+
+            error_log("[getPokemonAbilities] Found " . count($data['abilities']) . " abilities");
+
+            // Extraer nombres de habilidades
+            $abilities = [];
+            foreach ($data['abilities'] as $abilityData) {
+                if (isset($abilityData['ability']['name'])) {
+                    $ability = [
+                        'name' => ucwords(str_replace('-', ' ', $abilityData['ability']['name'])),
+                        'original' => $abilityData['ability']['name'],
+                        'isHidden' => $abilityData['is_hidden'] ?? false
+                    ];
+                    $abilities[] = $ability;
+                    error_log("[getPokemonAbilities] Added: " . json_encode($ability));
+                }
+            }
+
+            // Retornar habilidades ordenadas (primero normales, luego oculta)
+            usort($abilities, function($a, $b) {
+                return ($a['isHidden'] ? 1 : 0) - ($b['isHidden'] ? 1 : 0);
+            });
+
+            error_log("[getPokemonAbilities] Returning " . count($abilities) . " abilities");
+            return $abilities;
+        } catch (\Exception $e) {
+            error_log("[getPokemonAbilities] Exception: " . $e->getMessage());
             return [];
         }
     }

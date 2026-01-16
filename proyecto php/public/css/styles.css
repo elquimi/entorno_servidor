@@ -17,7 +17,7 @@ body {
     background: white;
     border-radius: 15px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* Header */
@@ -152,6 +152,8 @@ body {
 .compare-input {
     flex: 1;
     min-width: 250px;
+    position: relative;
+    z-index: 1;
 }
 
 .compare-input label {
@@ -702,12 +704,13 @@ body {
     background: white;
     border: 1px solid #ddd;
     border-top: none;
-    max-height: 200px;
+    max-height: 300px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 1001;
     display: none;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border-radius: 0 0 4px 4px;
+    margin-top: -1px;
 }
 
 .autocomplete-list.active {
@@ -975,13 +978,38 @@ body {
     padding: 10px;
     border-radius: 6px;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     font-size: 0.9em;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.move-item:hover {
+    background: #e8f0fe;
+    border-color: #667eea;
+}
+
+.move-item.selected {
+    background: #d4e3fc;
+    border-color: #667eea;
+}
+
+.move-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: #667eea;
 }
 
 .move-item .move-name {
     flex: 1;
+    margin-left: 0;
+    cursor: pointer;
 }
 
 .move-item .remove-move {

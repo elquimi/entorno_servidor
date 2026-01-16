@@ -226,6 +226,27 @@ class PokemonService
     }
 
     /**
+     * Busca Pokémon por coincidencia parcial del nombre
+     */
+    public function searchByPartial($query)
+    {
+        if (empty($query)) {
+            return [];
+        }
+
+        $query = strtolower(trim($query));
+        $fullList = $this->getAllList();
+        
+        // Filtrar Pokémon que coincidan con la búsqueda
+        $matches = array_filter($fullList, function($pokemon) use ($query) {
+            return strpos(strtolower($pokemon['name']), $query) !== false;
+        });
+
+        // Limitar a 10 resultados máximo
+        return array_slice(array_values($matches), 0, 10);
+    }
+
+    /**
      * Devuelve la lista completa desde datos locales o PokéAPI (id, name, image)
      */
     public function getAllList()

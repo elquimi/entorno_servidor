@@ -19,6 +19,8 @@
         <nav class="nav-tabs">
             <button class="nav-tab active" data-tab="search">Buscar Pokémon</button>
             <button class="nav-tab" data-tab="compare">Comparar Pokémon</button>
+            <button class="nav-tab" data-tab="my-team">Mi Equipo</button>
+            <button class="nav-tab" data-tab="damage-calc">Calculadora de Daño</button>
             <button class="nav-tab" data-tab="custom-stats">Estadísticas Personalizadas</button>
         </nav>
 
@@ -42,19 +44,83 @@
             <div class="compare-container">
                 <div class="compare-input">
                     <label>Pokémon 1:</label>
-                    <input type="text" id="comparePokemon1" placeholder="Nombre del primer Pokémon..." autocomplete="off">
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="comparePokemon1" placeholder="Nombre del primer Pokémon..." autocomplete="off">
+                        <ul id="suggestions1" class="autocomplete-list"></ul>
+                    </div>
                 </div>
                 <div class="vs-label">VS</div>
                 <div class="compare-input">
                     <label>Pokémon 2:</label>
-                    <input type="text" id="comparePokemon2" placeholder="Nombre del segundo Pokémon..." autocomplete="off">
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="comparePokemon2" placeholder="Nombre del segundo Pokémon..." autocomplete="off">
+                        <ul id="suggestions2" class="autocomplete-list"></ul>
+                    </div>
                 </div>
             </div>
             <button class="btn btn-primary" onclick="comparePokemon()">Comparar</button>
             <div id="compareResults" class="results-container"></div>
         </section>
 
-        <!-- Tab 3: Custom Stats -->
+        <!-- Tab 3: Mi Equipo -->
+        <section id="my-team" class="tab-content">
+            <div class="team-header">
+                <h2>Mi Equipo Pokémon</h2>
+                <button class="btn btn-primary" onclick="openCreatePokemonModal()">+ Crear Pokémon</button>
+            </div>
+            <div id="teamList" class="team-grid">
+                <!-- Los Pokémon del equipo se mostrarán aquí -->
+            </div>
+        </section>
+
+        <!-- Tab 4: Calculadora de Daño -->
+        <section id="damage-calc" class="tab-content">
+            <h2>Calculadora de Daño</h2>
+            <div class="damage-calc-container">
+                <div class="damage-section">
+                    <h3>Atacante</h3>
+                    <button class="btn btn-secondary" onclick="openAttackerSelector()">Seleccionar Pokémon</button>
+                    <div id="attackerInfo" class="pokemon-info-box"></div>
+                </div>
+                <div class="damage-section">
+                    <h3>Defensor</h3>
+                    <button class="btn btn-secondary" onclick="openDefenderSelector()">Seleccionar Pokémon</button>
+                    <div id="defenderInfo" class="pokemon-info-box"></div>
+                </div>
+            </div>
+            <div class="damage-section">
+                <h3>Movimiento de Ataque</h3>
+                <div class="move-selector">
+                    <input type="text" id="moveNameDmg" placeholder="Nombre del movimiento..." >
+                    <input type="number" id="movePowerDmg" placeholder="Poder del movimiento (0-150)" min="0" max="150" value="100">
+                    <select id="moveTypeDmg">
+                        <option value="">Seleccionar tipo...</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Fuego">Fuego</option>
+                        <option value="Agua">Agua</option>
+                        <option value="Eléctrico">Eléctrico</option>
+                        <option value="Planta">Planta</option>
+                        <option value="Hielo">Hielo</option>
+                        <option value="Lucha">Lucha</option>
+                        <option value="Veneno">Veneno</option>
+                        <option value="Tierra">Tierra</option>
+                        <option value="Volador">Volador</option>
+                        <option value="Psíquico">Psíquico</option>
+                        <option value="Bicho">Bicho</option>
+                        <option value="Roca">Roca</option>
+                        <option value="Fantasma">Fantasma</option>
+                        <option value="Dragón">Dragón</option>
+                        <option value="Siniestro">Siniestro</option>
+                        <option value="Acero">Acero</option>
+                        <option value="Hada">Hada</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="calculateDamage()">Calcular Daño</button>
+            <div id="damageResults" class="results-container"></div>
+        </section>
+
+        <!-- Tab 5: Custom Stats -->
         <section id="custom-stats" class="tab-content">
             <h2>Estadísticas Personalizadas</h2>
             <div class="stats-form">
@@ -89,6 +155,7 @@
     </div>
 
     <script src="js/script.js"></script>
+    <script src="js/team.js"></script>
     <script>
         // Inicializar carga de lista al abrir
         document.addEventListener('DOMContentLoaded', () => {
@@ -106,5 +173,129 @@
             <div id="modalBody"></div>
         </div>
     </div>
-</body>
-</html>
+
+    <!-- Modal para crear/editar Pokémon en equipo -->
+    <div id="createPokemonModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content large-modal">
+            <button class="modal-close" onclick="closeCreatePokemonModal()">&times;</button>
+            <h2>Agregar Pokémon al Equipo</h2>
+            
+            <div class="pokemon-type-selector">
+                <button class="type-btn active" data-type="existing" onclick="switchPokemonType('existing', event)">Pokémon Existente</button>
+                <button class="type-btn" data-type="custom" onclick="switchPokemonType('custom', event)">Pokémon Personalizado</button>
+            </div>
+
+            <!-- Formulario para Pokémon Existente -->
+            <div id="existingPokemonForm" class="pokemon-form active">
+                <h3>Seleccionar Pokémon Existente</h3>
+                <div class="form-group">
+                    <label>Pokémon:</label>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="existingPokeName" placeholder="Buscar Pokémon..." autocomplete="off">
+                        <ul id="existingSuggestions" class="autocomplete-list"></ul>
+                    </div>
+                </div>
+                <div id="existingPokemonInfo" class="pokemon-info-section"></div>
+                <div id="existingAbilitiesSection" class="form-group" style="display:none;">
+                    <label>Habilidad:</label>
+                    <select id="existingAbility"></select>
+                </div>
+                <div id="existingMovesSection" class="form-group" style="display:none;">
+                    <label>Ataques (máximo 4):</label>
+                    <div class="moves-list" id="existingMovesList"></div>
+                </div>
+            </div>
+
+            <!-- Formulario para Pokémon Personalizado -->
+            <div id="customPokemonForm" class="pokemon-form" style="display:none;">
+                <h3>Crear Pokémon Personalizado</h3>
+                <div class="form-group">
+                    <label>Mote (obligatorio):</label>
+                    <input type="text" id="customNickname" placeholder="Ej: Mi Dragón Favorito" required>
+                </div>
+                <div class="form-group">
+                    <label>Tipo:</label>
+                    <select id="customPokeType" required>
+                        <option value="">Seleccionar tipo...</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Fuego">Fuego</option>
+                        <option value="Agua">Agua</option>
+                        <option value="Eléctrico">Eléctrico</option>
+                        <option value="Planta">Planta</option>
+                        <option value="Hielo">Hielo</option>
+                        <option value="Lucha">Lucha</option>
+                        <option value="Veneno">Veneno</option>
+                        <option value="Tierra">Tierra</option>
+                        <option value="Volador">Volador</option>
+                        <option value="Psíquico">Psíquico</option>
+                        <option value="Bicho">Bicho</option>
+                        <option value="Roca">Roca</option>
+                        <option value="Fantasma">Fantasma</option>
+                        <option value="Dragón">Dragón</option>
+                        <option value="Siniestro">Siniestro</option>
+                        <option value="Acero">Acero</option>
+                        <option value="Hada">Hada</option>
+                    </select>
+                </div>
+                
+                <h4>Estadísticas Base</h4>
+                <div class="stats-grid">
+                    <div class="form-group">
+                        <label>HP:</label>
+                        <input type="number" id="customHP" min="1" max="255" value="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Ataque:</label>
+                        <input type="number" id="customAtk" min="1" max="255" value="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Defensa:</label>
+                        <input type="number" id="customDef" min="1" max="255" value="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Ataque Esp.:</label>
+                        <input type="number" id="customSpAtk" min="1" max="255" value="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Defensa Esp.:</label>
+                        <input type="number" id="customSpDef" min="1" max="255" value="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Velocidad:</label>
+                        <input type="number" id="customSpeed" min="1" max="255" value="100">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Habilidad:</label>
+                    <input type="text" id="customAbility" placeholder="Ej: Defensa Cristal">
+                </div>
+
+                <div class="form-group">
+                    <label>Ataques (máximo 4, separados por coma):</label>
+                    <textarea id="customMoves" placeholder="Ej: Golpe, Rayo, Lanzallamas, Terremoto" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeCreatePokemonModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="savePokemonToTeam()">Agregar al Equipo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para seleccionar Pokémon (Comparar o Daño) -->
+    <div id="selectorModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeSelectorModal()">&times;</button>
+            <h2 id="selectorTitle">Seleccionar Pokémon</h2>
+            <div class="selector-tabs">
+                <button class="selector-tab active" data-source="base" onclick="switchSelectorSource('base', event)">Pokémon Base</button>
+                <button class="selector-tab" data-source="team" onclick="switchSelectorSource('team', event)">Mi Equipo</button>
+            </div>
+            <input type="text" id="selectorSearch" placeholder="Buscar..." autocomplete="off">
+            <div id="selectorList" class="selector-list"></div>
+        </div>
+    </div>

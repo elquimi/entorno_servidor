@@ -1,0 +1,240 @@
+<?php
+
+namespace services;
+
+use models\Team;
+use models\CustomPokemon;
+
+/**
+ * Servicio para gestionar equipos de Pokémon personalizados
+ */
+class TeamService
+{
+    private $dataFile = '';
+    private $movesFile = '';
+    private $pokemonService;
+
+    public function __construct()
+    {
+        $this->dataFile = __DIR__ . '/../data/teams.json';
+        $this->movesFile = __DIR__ . '/../data/moves.json';
+        $this->pokemonService = new PokemonService();
+        $this->ensureDataFile();
+        $this->ensureMovesFile();
+    }
+
+    /**
+     * Asegura que exista el archivo de equipos
+     */
+    private function ensureDataFile()
+    {
+        if (!file_exists($this->dataFile)) {
+            $dir = dirname($this->dataFile);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            file_put_contents($this->dataFile, json_encode([]));
+        }
+    }
+
+    /**
+     * Asegura que exista el archivo de movimientos
+     */
+    private function ensureMovesFile()
+    {
+        if (!file_exists($this->movesFile)) {
+            $dir = dirname($this->movesFile);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            // Crear lista básica de movimientos comunes
+            $commonMoves = $this->getCommonMoves();
+            file_put_contents($this->movesFile, json_encode($commonMoves));
+        }
+    }
+
+    /**
+     * Obtiene lista de movimientos comunes
+     */
+    private function getCommonMoves()
+    {
+        return [
+            ['name' => 'Tackle', 'power' => 40, 'accuracy' => 100, 'type' => 'Normal'],
+            ['name' => 'Scratch', 'power' => 40, 'accuracy' => 100, 'type' => 'Normal'],
+            ['name' => 'Ember', 'power' => 40, 'accuracy' => 100, 'type' => 'Fire'],
+            ['name' => 'Water Gun', 'power' => 40, 'accuracy' => 100, 'type' => 'Water'],
+            ['name' => 'Vine Whip', 'power' => 45, 'accuracy' => 100, 'type' => 'Grass'],
+            ['name' => 'Thunder Shock', 'power' => 40, 'accuracy' => 100, 'type' => 'Electric'],
+            ['name' => 'Peck', 'power' => 35, 'accuracy' => 100, 'type' => 'Flying'],
+            ['name' => 'Bite', 'power' => 60, 'accuracy' => 100, 'type' => 'Dark'],
+            ['name' => 'Pound', 'power' => 40, 'accuracy' => 100, 'type' => 'Normal'],
+            ['name' => 'Psychic', 'power' => 90, 'accuracy' => 100, 'type' => 'Psychic'],
+            ['name' => 'Ice Beam', 'power' => 90, 'accuracy' => 100, 'type' => 'Ice'],
+            ['name' => 'Thunderbolt', 'power' => 90, 'accuracy' => 100, 'type' => 'Electric'],
+            ['name' => 'Flamethrower', 'power' => 90, 'accuracy' => 100, 'type' => 'Fire'],
+            ['name' => 'Surf', 'power' => 90, 'accuracy' => 100, 'type' => 'Water'],
+            ['name' => 'Earthquake', 'power' => 100, 'accuracy' => 100, 'type' => 'Ground'],
+            ['name' => 'Dragon Claw', 'power' => 80, 'accuracy' => 100, 'type' => 'Dragon'],
+            ['name' => 'Close Combat', 'power' => 120, 'accuracy' => 100, 'type' => 'Fighting'],
+            ['name' => 'Stone Edge', 'power' => 100, 'accuracy' => 80, 'type' => 'Rock'],
+            ['name' => 'Hyper Beam', 'power' => 150, 'accuracy' => 90, 'type' => 'Normal'],
+            ['name' => 'Shadow Ball', 'power' => 80, 'accuracy' => 100, 'type' => 'Ghost']
+        ];
+    }
+
+    /**
+     * Obtiene todos los movimientos disponibles
+     */
+    public function getAllMoves()
+    {
+        $moves = json_decode(file_get_contents($this->movesFile), true);
+        return $moves ?: $this->getCommonMoves();
+    }
+
+    /**
+     * Crea un nuevo equipo
+     */
+    public function createTeam($name = 'Mi Equipo', $description = '')
+    {
+        $team = new Team([
+            'name' => $name,
+            'description' => $description
+        ]);
+        return $team;
+    }
+
+    /**
+     * Guarda un equipo en el archivo
+     */
+    public function saveTeam($team)
+    {
+        try {
+            $teams = json_decode(file_get_contents($this->dataFile), true) ?? [];
+            
+            // Buscar si el equipo ya existe
+            $found = false;
+            foreach ($teams as &$t) {
+                if ($t['id'] === $team->id) {
+                    $t = $team->toArray();
+                    $found = true;
+                    break;
+                }
+            }
+            
+            if (!$found) {
+                $teams[] = $team->toArray();
+            }
+            
+            file_put_contents($this->dataFile, json_encode($teams, JSON_PRETTY_PRINT));
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Obtiene un equipo por ID
+     */
+    public function getTeam($teamId)
+    {
+        try {
+            $teams = json_decode(file_get_contents($this->dataFile), true) ?? [];
+            
+            foreach ($teams as $teamData) {
+                if ($teamData['id'] === $teamId) {
+                    $team = new Team($teamData);
+                    // Convertir members a CustomPokemon
+                    $team->members = array_map(function($memberData) {
+                        return new CustomPokemon($memberData);
+                    }, $teamData['members']);
+                    return $team;
+                }
+            }
+            return null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Obtiene todos los equipos
+     */
+    public function getAllTeams()
+    {
+        try {
+            $teams = json_decode(file_get_contents($this->dataFile), true) ?? [];
+            
+            return array_map(function($teamData) {
+                $team = new Team($teamData);
+                $team->members = array_map(function($memberData) {
+                    return new CustomPokemon($memberData);
+                }, $teamData['members']);
+                return $team;
+            }, $teams);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Elimina un equipo
+     */
+    public function deleteTeam($teamId)
+    {
+        try {
+            $teams = json_decode(file_get_contents($this->dataFile), true) ?? [];
+            $teams = array_filter($teams, function($t) use ($teamId) {
+                return $t['id'] !== $teamId;
+            });
+            file_put_contents($this->dataFile, json_encode(array_values($teams), JSON_PRETTY_PRINT));
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Obtiene movimientos de un Pokémon específico
+     */
+    public function getPokemonMoves($pokemonName)
+    {
+        try {
+            $pokemon = $this->pokemonService->searchByName($pokemonName);
+            if (!$pokemon) {
+                return [];
+            }
+
+            // Obtener movimientos de la API
+            $url = "https://pokeapi.co/api/v2/pokemon/" . strtolower($pokemonName);
+            $context = stream_context_create([
+                'http' => ['timeout' => 5, 'ignore_errors' => true]
+            ]);
+            $response = @file_get_contents($url, false, $context);
+            
+            if ($response === false) {
+                return [];
+            }
+
+            $data = json_decode($response, true);
+            if (!isset($data['moves']) || !is_array($data['moves'])) {
+                return [];
+            }
+
+            // Extraer nombres de movimientos
+            $moves = [];
+            foreach ($data['moves'] as $moveData) {
+                if (isset($moveData['move']['name'])) {
+                    $moves[] = [
+                        'name' => ucwords(str_replace('-', ' ', $moveData['move']['name'])),
+                        'original' => $moveData['move']['name']
+                    ];
+                }
+            }
+
+            return array_slice(array_unique($moves, SORT_REGULAR), 0, 10); // Top 10 movimientos
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+}
+?>

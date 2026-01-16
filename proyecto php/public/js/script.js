@@ -518,3 +518,130 @@ function closePokemonModal() {
         document.body.style.overflow = 'auto';
     }
 }
+// ==================== Autocompletado ====================
+let debounceTimers = {};
+
+/**
+ * Obtiene sugerencias de Pokémon
+ */
+function getSuggestions(query, inputId) {
+    const suggestionsList = document.getElementById(`suggestions${inputId === 'comparePokemon1' ? '1' : '2'}`);
+    
+    if (!query || query.length < 1) {
+        suggestionsList.classList.remove('active');
+        return;
+    }
+
+    // Cancelar petición anterior si existe
+    if (debounceTimers[inputId]) {
+        clearTimeout(debounceTimers[inputId]);
+    }
+
+    // Debounce: esperar 300ms antes de hacer la petición
+    debounceTimers[inputId] = setTimeout(() => {
+        fetch(`${BASE_PATH}/api/pokemon/search-partial?q=${encodeURIComponent(query)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.data && data.data.length > 0) {
+                    displaySuggestions(data.data, inputId);
+                } else {
+                    suggestionsList.classList.remove('active');
+                }
+            })
+            .catch(() => suggestionsList.classList.remove('active'));
+    }, 300);
+}
+
+/**
+ * Muestra las sugerencias en la lista
+ */
+function displaySuggestions(suggestions, inputId) {
+    const suggestionsList = document.getElementById(`suggestions${inputId === 'comparePokemon1' ? '1' : '2'}`);
+    suggestionsList.innerHTML = '';
+
+    suggestions.forEach((pokemon, index) => {
+        const li = document.createElement('li');
+        li.className = 'suggestion-item';
+        li.setAttribute('data-pokemon-name', pokemon.name);
+        li.setAttribute('data-input-id', inputId);
+        li.innerHTML = `
+            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}" onerror="this.style.display='none'">` : ''}
+            <div class="pokemon-info">
+                <div class="pokemon-name">${pokemon.name}</div>
+                <div class="pokemon-id">#${pokemon.id || ''}</div>
+            </div>
+        `;
+        suggestionsList.appendChild(li);
+    });
+
+    suggestionsList.classList.add('active');
+}
+
+/**
+ * Selecciona un Pokémon de las sugerencias
+ */
+function selectPokemonSuggestion(pokemonName, inputId) {
+    const input = document.getElementById(inputId);
+    if (input) {
+        input.value = pokemonName;
+        input.focus();
+    }
+    
+    const suggestionsList = document.getElementById(`suggestions${inputId === 'comparePokemon1' ? '1' : '2'}`);
+    if (suggestionsList) {
+        suggestionsList.classList.remove('active');
+    }
+}
+
+/**
+ * Inicializa los event listeners del autocompletado
+ */
+function initAutocompletado() {
+    const input1 = document.getElementById('comparePokemon1');
+    const input2 = document.getElementById('comparePokemon2');
+    const suggestions1 = document.getElementById('suggestions1');
+    const suggestions2 = document.getElementById('suggestions2');
+
+    if (input1) {
+        input1.addEventListener('input', (e) => getSuggestions(e.target.value, 'comparePokemon1'));
+        input1.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (suggestions1) suggestions1.classList.remove('active');
+            }, 200);
+        });
+    }
+
+    if (input2) {
+        input2.addEventListener('input', (e) => getSuggestions(e.target.value, 'comparePokemon2'));
+        input2.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (suggestions2) suggestions2.classList.remove('active');
+            }, 200);
+        });
+    }
+
+    // Usar mousedown en lugar de click para evitar conflictos con blur
+    document.addEventListener('mousedown', (e) => {
+        const suggestionItem = e.target.closest('.suggestion-item');
+        if (suggestionItem) {
+            e.preventDefault();
+            const pokemonName = suggestionItem.getAttribute('data-pokemon-name');
+            const inputId = suggestionItem.getAttribute('data-input-id');
+            selectPokemonSuggestion(pokemonName, inputId);
+            return;
+        }
+    });
+
+    // Cerrar sugerencias al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.autocomplete-wrapper')) {
+            if (suggestions1) suggestions1.classList.remove('active');
+            if (suggestions2) suggestions2.classList.remove('active');
+        }
+    });
+}
+
+// Inicializar autocompletado cuando cargue el DOM
+document.addEventListener('DOMContentLoaded', () => {
+    initAutocompletado();
+});

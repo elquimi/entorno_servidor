@@ -90,5 +90,32 @@ class PokemonController
             echo json_encode(['error' => $e->getMessage()]);
         }
     }
+
+    /**
+     * Busca Pokémon por coincidencia parcial (autocompletado)
+     */
+    public function searchPartial($query)
+    {
+        try {
+            if (empty($query)) {
+                echo json_encode([
+                    'success' => true,
+                    'data' => []
+                ]);
+                return;
+            }
+
+            $matches = $this->pokemonService->searchByPartial($query);
+
+            echo json_encode([
+                'success' => true,
+                'data' => $matches
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
 }
 ?>
+

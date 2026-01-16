@@ -49,6 +49,14 @@ if ($request === '/' || $request === '' || $request === '/index.php') {
             http_response_code(500);
             echo json_encode(['error' => $e->getMessage()]);
         }
+    } elseif ($request === '/api/pokemon/search-partial') {
+        try {
+            $controller = new controllers\PokemonController();
+            $controller->searchPartial($_GET['q'] ?? '');
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
     } elseif ($request === '/api/pokemon/compare') {
         $controller = new controllers\PokemonController();
         $controller->compare($_POST['pokemon1'] ?? '', $_POST['pokemon2'] ?? '');
@@ -58,6 +66,41 @@ if ($request === '/' || $request === '' || $request === '/index.php') {
     } elseif ($request === '/api/pokemon/stats') {
         $controller = new controllers\StatsController();
         $controller->calculateStats($_POST['stats'] ?? []);
+    } elseif ($request === '/api/team/all') {
+        $controller = new controllers\TeamController();
+        $controller->getAll();
+    } elseif ($request === '/api/team/create') {
+        $controller = new controllers\TeamController();
+        $controller->create();
+    } elseif ($request === '/api/team/moves') {
+        $controller = new controllers\TeamController();
+        $controller->getMoves();
+    } elseif (preg_match('#^/api/team/([^/]+)$#', $request, $matches)) {
+        $teamId = $matches[1];
+        $controller = new controllers\TeamController();
+        $controller->getTeam($teamId);
+    } elseif (preg_match('#^/api/team/([^/]+)/pokemon/moves/([^/]+)$#', $request, $matches)) {
+        $pokemonName = urldecode($matches[2]);
+        $controller = new controllers\TeamController();
+        $controller->getPokemonMoves($pokemonName);
+    } elseif (preg_match('#^/api/team/([^/]+)/pokemon/add$#', $request, $matches)) {
+        $teamId = $matches[1];
+        $controller = new controllers\TeamController();
+        $controller->addPokemon($teamId);
+    } elseif (preg_match('#^/api/team/([^/]+)/pokemon/([^/]+)/update$#', $request, $matches)) {
+        $teamId = $matches[1];
+        $pokemonId = $matches[2];
+        $controller = new controllers\TeamController();
+        $controller->updatePokemon($teamId, $pokemonId);
+    } elseif (preg_match('#^/api/team/([^/]+)/pokemon/([^/]+)/remove$#', $request, $matches)) {
+        $teamId = $matches[1];
+        $pokemonId = $matches[2];
+        $controller = new controllers\TeamController();
+        $controller->removePokemon($teamId, $pokemonId);
+    } elseif (preg_match('#^/api/team/([^/]+)/delete$#', $request, $matches)) {
+        $teamId = $matches[1];
+        $controller = new controllers\TeamController();
+        $controller->delete($teamId);
     } else {
         http_response_code(404);
         echo json_encode(['error' => 'Ruta no encontrada']);

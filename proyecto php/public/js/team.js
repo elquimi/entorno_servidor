@@ -207,7 +207,14 @@ document.addEventListener('mousedown', (e) => {
                         document.getElementById('customSpAtk').value = pokemonData.spAtk || 100;
                         document.getElementById('customSpDef').value = pokemonData.spDef || 100;
                         document.getElementById('customSpeed').value = pokemonData.speed || 100;
-                        console.log('✅ Estadísticas cargadas desde API');
+                        
+                        // Cargar tipos
+                        const types = (pokemonData.type || '').split(', ').filter(t => t);
+                        document.getElementById('customType1').value = types[0] || '';
+                        document.getElementById('customType2').value = types[1] || '';
+                        
+                        console.log('✅ Tipos cargados:', types);
+                        console.log('✅ Estadísticas y tipos cargados desde API');
                     }
                 })
                 .catch(err => console.error('❌ Error al cargar estadísticas:', err));
@@ -268,7 +275,8 @@ document.addEventListener('mousedown', (e) => {
  */
 function resetCustomForm() {
     document.getElementById('customNickname').value = '';
-    document.getElementById('customPokeType').value = '';
+    document.getElementById('customType1').value = '';
+    document.getElementById('customType2').value = '';
     document.getElementById('customHP').value = '100';
     document.getElementById('customAtk').value = '100';
     document.getElementById('customDef').value = '100';
@@ -277,12 +285,7 @@ function resetCustomForm() {
     document.getElementById('customSpeed').value = '100';
     document.getElementById('customAbility').value = '';
     document.getElementById('customMoves').value = '';
-    const typeSearch = document.getElementById('customTypeSearch');
-    const typeList = document.getElementById('customTypeSuggestions');
-    const typeSelected = document.getElementById('customTypeSelected');
-    if (typeSearch) typeSearch.value = '';
-    if (typeList) { typeList.innerHTML = ''; typeList.classList.remove('active'); }
-    if (typeSelected) typeSelected.innerHTML = '';
+    document.getElementById('customBasePokeName').value = '';
     selectedCustomTypes = [];
 }
 
@@ -701,9 +704,16 @@ function savePokemonToTeam() {
             .filter(m => m)
             .slice(0, 4);
         
-        const typeString = (selectedCustomTypes && selectedCustomTypes.length > 0)
-            ? selectedCustomTypes.join(', ')
-            : document.getElementById('customPokeType').value;
+        // Obtener los tipos de los selects
+        const type1 = document.getElementById('customType1').value;
+        const type2 = document.getElementById('customType2').value;
+        
+        if (!type1) {
+            showError('El tipo 1 es obligatorio');
+            return;
+        }
+        
+        const typeString = type2 ? `${type1}, ${type2}` : type1;
         
         // Obtener el nombre del Pokémon base del input (si existe)
         const basePokemonNameInput = document.getElementById('customBasePokeName').value.trim();
@@ -846,7 +856,6 @@ function editPokemon(pokemonId) {
         
         // Rellenar campos
         document.getElementById('customNickname').value = pokemon.nickname || '';
-        document.getElementById('customPokeType').value = pokemon.type || '';
         document.getElementById('customHP').value = pokemon.hp || 100;
         document.getElementById('customAtk').value = pokemon.attack || 100;
         document.getElementById('customDef').value = pokemon.defense || 100;
@@ -855,6 +864,13 @@ function editPokemon(pokemonId) {
         document.getElementById('customSpeed').value = pokemon.speed || 100;
         document.getElementById('customAbility').value = pokemon.ability || '';
         document.getElementById('customMoves').value = (pokemon.moves || []).join(', ');
+        
+        // Cargar tipos
+        const types = (pokemon.type || '').split(', ').filter(t => t);
+        const type1Elem = document.getElementById('customType1');
+        const type2Elem = document.getElementById('customType2');
+        if (type1Elem) type1Elem.value = types[0] || '';
+        if (type2Elem) type2Elem.value = types[1] || '';
         
         // Rellenar Pokémon base si existe
         if (pokemon.basePokemonName) {

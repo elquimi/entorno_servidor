@@ -27,43 +27,41 @@
                 "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/814.png"
             },
             {
-                "id": "pokemon_696ae27902854",
-                "nickname": "susan",
+                "id": "pokemon_696b686adcf5f",
+                "nickname": "susa",
                 "isCustom": true,
-                "basePokemonName": "Raboot",
-                "basePokemonId": 814,
-                "hp": 65,
-                "attack": 86,
-                "defense": 60,
-                "spAtk": 55,
-                "spDef": 60,
-                "speed": 94,
-                "ability": "guts",
-                "moves": [
-                    "golpe"
-                ],
-                "type": "Fuego",
-                "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/814.png"
-            },
-            {
-                "id": "pokemon_696b626b0cc5d",
-                "nickname": "susan",
-                "isCustom": true,
-                "basePokemonName": "",
-                "basePokemonId": null,
-                "hp": 100,
-                "attack": 100,
-                "defense": 100,
-                "spAtk": 100,
-                "spDef": 10,
-                "speed": 100,
+                "basePokemonName": "Charmander",
+                "basePokemonId": 4,
+                "hp": 39,
+                "attack": 52,
+                "defense": 43,
+                "spAtk": 60,
+                "spDef": 50,
+                "speed": 65,
                 "ability": "",
                 "moves": [],
                 "type": "Fuego",
-                "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/default.png"
+                "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/4.png"
+            },
+            {
+                "id": "pokemon_696b69250d2fa",
+                "nickname": "susan",
+                "isCustom": true,
+                "basePokemonName": "Tyranitar",
+                "basePokemonId": 248,
+                "hp": 100,
+                "attack": 134,
+                "defense": 110,
+                "spAtk": 95,
+                "spDef": 100,
+                "speed": 61,
+                "ability": "",
+                "moves": [],
+                "type": "Roca, Siniestro",
+                "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/248.png"
             }
         ],
         "createdAt": "2026-01-16 10:18:27",
-        "updatedAt": "2026-01-17 04:36:56"
+        "updatedAt": "2026-01-17 04:50:37"
     }
 ]

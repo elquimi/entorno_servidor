@@ -38,7 +38,7 @@
                 "spAtk": 60,
                 "spDef": 50,
                 "speed": 65,
-                "ability": "",
+                "ability": "Justified",
                 "moves": [],
                 "type": "Fuego",
                 "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/4.png"
@@ -59,9 +59,26 @@
                 "moves": [],
                 "type": "Roca, Siniestro",
                 "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/248.png"
+            },
+            {
+                "id": "pokemon_696b6c9cdbf3c",
+                "nickname": "susan",
+                "isCustom": true,
+                "basePokemonName": "Gastrodon",
+                "basePokemonId": 423,
+                "hp": 111,
+                "attack": 83,
+                "defense": 68,
+                "spAtk": 92,
+                "spDef": 82,
+                "speed": 39,
+                "ability": "Sand Force",
+                "moves": [],
+                "type": "Agua, Tierra",
+                "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/423.png"
             }
         ],
         "createdAt": "2026-01-16 10:18:27",
-        "updatedAt": "2026-01-17 04:50:37"
+        "updatedAt": "2026-01-17 05:44:08"
     }
 ]

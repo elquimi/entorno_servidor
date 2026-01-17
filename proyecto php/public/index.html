@@ -311,8 +311,15 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Habilidad:</label>
-                    <input type="text" id="customAbility" placeholder="Ej: Defensa Cristal">
+                    <label>Habilidades del Pokémon base (obligatoria si no eliges otra):</label>
+                    <select id="customAbilityPredefined" style="width: 100%;">
+                        <option value="">Seleccionar habilidad...</option>
+                    </select>
+                    <div style="margin-top: 10px; display:flex; align-items:center; gap:10px;">
+                        <button class="btn btn-secondary" onclick="openAbilitySelector()">Otras habilidades</button>
+                        <span id="customAbilityOtherLabel" style="font-size:0.9em; color:#666; display:none;">Seleccionada: <strong id="customAbilityOtherName"></strong></span>
+                    </div>
+                    <input type="hidden" id="customAbilityOther" value="">
                 </div>
 
                 <div class="form-group">
@@ -348,5 +355,16 @@
         <div class="modal-content large-modal">
             <button class="modal-close" onclick="closeTeamPokemonDetail()">&times;</button>
             <div id="teamPokemonDetailBody"></div>
+        </div>
+    </div>
+    <!-- Modal para seleccionar Habilidad -->
+    <div id="abilitySelectorModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeAbilitySelector()">&times;</button>
+            <h2 id="abilitySelectorTitle">Otras Habilidades</h2>
+            <input type="text" id="abilitySelectorSearch" placeholder="Buscar habilidad..." autocomplete="off" style="margin-bottom:10px;">
+            <div id="abilitySelectorList" class="selector-list"></div>
+            <div id="abilitySelectorDetail" class="detail-box" style="display:none;"></div>
         </div>
     </div>

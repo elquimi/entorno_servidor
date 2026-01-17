@@ -213,8 +213,11 @@ document.addEventListener('mousedown', (e) => {
                         document.getElementById('customType1').value = types[0] || '';
                         document.getElementById('customType2').value = types[1] || '';
                         
+                        // Cargar habilidades del Pokémon base
+                        loadBaseAbilities(pokemonData.name, '');
+                        
                         console.log('✅ Tipos cargados:', types);
-                        console.log('✅ Estadísticas y tipos cargados desde API');
+                        console.log('✅ Estadísticas, tipos y habilidades cargados desde API');
                     }
                 })
                 .catch(err => console.error('❌ Error al cargar estadísticas:', err));
@@ -283,7 +286,13 @@ function resetCustomForm() {
     document.getElementById('customSpAtk').value = '100';
     document.getElementById('customSpDef').value = '100';
     document.getElementById('customSpeed').value = '100';
-    document.getElementById('customAbility').value = '';
+    document.getElementById('customAbilityPredefined').value = '';
+    const otherInput = document.getElementById('customAbilityOther');
+    if (otherInput) otherInput.value = '';
+    const otherLabel = document.getElementById('customAbilityOtherLabel');
+    const otherNameEl = document.getElementById('customAbilityOtherName');
+    if (otherLabel) otherLabel.style.display = 'none';
+    if (otherNameEl) otherNameEl.textContent = '';
     document.getElementById('customMoves').value = '';
     document.getElementById('customBasePokeName').value = '';
     selectedCustomTypes = [];
@@ -717,6 +726,18 @@ function savePokemonToTeam() {
         
         // Obtener el nombre del Pokémon base del input (si existe)
         const basePokemonNameInput = document.getElementById('customBasePokeName').value.trim();
+        // Determinar habilidad: priorizar "Otra habilidad" si existe, si no usar predefinida
+        let finalAbility = '';
+        const otherAbility = document.getElementById('customAbilityOther')?.value?.trim();
+        const predefinedAbility = document.getElementById('customAbilityPredefined')?.value;
+        if (otherAbility) {
+            finalAbility = otherAbility;
+        } else if (predefinedAbility) {
+            finalAbility = predefinedAbility;
+        } else {
+            showError('Debes seleccionar una habilidad (predefinida u otra)');
+            return;
+        }
         
         // Determinar imagen y basePokemon
         let finalImage = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/default.png';
@@ -748,7 +769,7 @@ function savePokemonToTeam() {
             spAtk: parseInt(document.getElementById('customSpAtk').value),
             spDef: parseInt(document.getElementById('customSpDef').value),
             speed: parseInt(document.getElementById('customSpeed').value),
-            ability: document.getElementById('customAbility').value,
+            ability: finalAbility,
             moves: moves,
             type: typeString,
             image: finalImage
@@ -862,7 +883,6 @@ function editPokemon(pokemonId) {
         document.getElementById('customSpAtk').value = pokemon.spAtk || 100;
         document.getElementById('customSpDef').value = pokemon.spDef || 100;
         document.getElementById('customSpeed').value = pokemon.speed || 100;
-        document.getElementById('customAbility').value = pokemon.ability || '';
         document.getElementById('customMoves').value = (pokemon.moves || []).join(', ');
         
         // Cargar tipos
@@ -878,6 +898,8 @@ function editPokemon(pokemonId) {
             const basePokemon = allPokemon.find(p => p.name === pokemon.basePokemonName);
             if (basePokemon) {
                 customBasePokemon = basePokemon;
+                // Cargar habilidades predefinidas del Pokémon base
+                loadBaseAbilities(pokemon.basePokemonName, pokemon.ability);
             }
         }
     } else {
@@ -1023,6 +1045,115 @@ function removePokemon(pokemonId) {
 }
 
 /**
+ * Busca habilidades por nombre (búsqueda local simplificada)
+ */
+function searchAbilities(query) {
+    if (!query || query.length < 1) {
+        const suggestions = document.getElementById('customAbilitySuggestions');
+        if (suggestions) suggestions.classList.remove('active');
+        return;
+    }
+    
+    // Listado de habilidades comunes de Pokémon (se puede expandir)
+    const commonAbilities = [
+        'Espíritu Vital', 'Absorbamagia', 'Absorbe', 'Adaptabilidad', 'Adsorción', 'Agilidad',
+        'Agitación', 'Aguante', 'Alerta', 'Alerta Sonora', 'Almacén', 'Altivez', 'Alivio',
+        'Amagigo', 'Amenaza', 'Amigo del Agua', 'Amistad', 'Amuleto de Suerte', 'Análisis',
+        'Ancla', 'Andadas', 'Anemia', 'Animosidad', 'Ansia de Batalla', 'Antiaéreo', 'Antídoto',
+        'Antilluvia', 'Antirrabo', 'Antojo', 'Anulación', 'Aplomo', 'Apocamiento', 'Aporte',
+        'Aprendizaje', 'Aprovechador', 'Aptitud', 'Apuesta por Todo', 'Apuesta', 'Apuesto',
+        'Aqueísmo', 'Arado', 'Arapaso', 'Arador', 'Arancel', 'Araña de Red', 'Araña', 'Araña Lanza',
+        'Arañazo', 'Arcabúz', 'Arcade', 'Arcadura', 'Arce', 'Arcén', 'Archero', 'Archi', 'Archiduque',
+        'Archimillonario', 'Archipiélago', 'Archivo', 'Arcilla', 'Arcén', 'Archi Enemigo', 'Arcifane',
+        'Arcilla Endurecida', 'Arciloso', 'Arciprés', 'Arcis', 'Arcison', 'Arcísono', 'Arcivés',
+        'Arciviz', 'Arcizuela', 'Arcobúz', 'Arcuación', 'Arcuada', 'Arcuado', 'Arcuador',
+        'Arcuadura', 'Arcual', 'Arcualia', 'Arcuamiento', 'Arcuana', 'Arcuante', 'Arcuaría',
+        'Arcuario', 'Arcuata', 'Arcuatifolia', 'Arcuatura', 'Arcubense', 'Arcubia', 'Arcuca',
+        'Arcucés', 'Arcución', 'Arcuda', 'Arcudería', 'Arcudera', 'Arcudero', 'Arcudilla', 'Arcudo',
+        'Arcuduelo', 'Arcudueva', 'Arcuduría', 'Arcuela', 'Arcuelería', 'Arcuelero', 'Arcuencia',
+        'Arcuenco', 'Arcuenda', 'Arcuendería', 'Arcuendero', 'Arcuendica', 'Arcuendilla', 'Arcuendío',
+        'Arcuenga', 'Arcuengada', 'Arcuengadiza', 'Arcuengadizo', 'Arcuengadora', 'Arcuengador',
+        'Arcuengadora', 'Arcuengadura', 'Arcuengamiento', 'Arcuenga', 'Arcuengal', 'Arcuengana',
+        'Arcuengancia', 'Arcuengano', 'Arcuengas', 'Arcuengazo', 'Arcuengería', 'Arcuengía',
+        'Arcuengil', 'Arcuengilla', 'Arcuengilla', 'Arcuengío', 'Arcuengonería', 'Arcuengonero',
+        'Arcueña', 'Arcueñada', 'Arcueñadora', 'Arcueñador', 'Arcueñadura', 'Arcueñal', 'Arcueñana',
+        'Arcueñancia', 'Arcueñano', 'Arcueñas', 'Arcueñazo', 'Arcueñería', 'Arcueñería', 'Arcueñería',
+        'Arcueñía', 'Arcueñil', 'Arcueñilla', 'Arcueño', 'Arcueño', 'Arcueño', 'Arcueño', 'Arcueño',
+        // Habilidades comunes de Pokémon reales
+        'Estática', 'Pararrayos', 'Piel Seca', 'Defensa Cristal', 'Absorbe Agua', 'Humedad',
+        'Punto Débil', 'Velocidad', 'Sincronización', 'Cuerpo Puro', 'Levitación', 'Nocturnidad',
+        'Nitidez', 'Foco Interior', 'Presión', 'Recogida', 'Magnetismo', 'Bravucón', 'Cuerpo Ardiente'
+    ];
+    
+    const q = query.toLowerCase().trim();
+    const filtered = commonAbilities.filter(a => a.toLowerCase().includes(q));
+    
+    displayAbilitySuggestions(filtered.map(name => ({ name, description: '' })));
+}
+
+/**
+ * Muestra las sugerencias de habilidades
+ */
+function displayAbilitySuggestions(abilities) {
+    const list = document.getElementById('customAbilitySuggestions');
+    if (!list) return;
+    
+    list.innerHTML = '';
+    abilities.slice(0, 10).forEach(ability => {
+        const li = document.createElement('li');
+        li.className = 'suggestion-item';
+        li.setAttribute('data-ability-name', ability.name);
+        li.innerHTML = `
+            <div class="pokemon-info">
+                <div class="pokemon-name">${ability.name}</div>
+                <div class="pokemon-id" style="font-size: 0.85em; color: #666;">${ability.description || 'Sin descripción'}</div>
+            </div>
+        `;
+        list.appendChild(li);
+    });
+    list.classList.add('active');
+}
+
+/**
+ * Carga las habilidades predefinidas del Pokémon base
+ */
+function loadBaseAbilities(pokemonName, currentAbility) {
+    const select = document.getElementById('customAbilityPredefined');
+    if (!select) return;
+    
+    fetch(`${BASE_PATH}/api/team/pokemon/abilities/${encodeURIComponent(pokemonName)}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.data) {
+                select.innerHTML = '<option value="">Seleccionar habilidad...</option>';
+                data.data.forEach(ability => {
+                    const option = document.createElement('option');
+                    option.value = ability.name || ability.original;
+                    option.textContent = ability.name || ability.original;
+                    select.appendChild(option);
+                });
+                
+                // Preseleccionar la habilidad actual:
+                const predefinedAbility = data.data.find(a => (a.name || a.original) === currentAbility);
+                const otherInput = document.getElementById('customAbilityOther');
+                const otherLabel = document.getElementById('customAbilityOtherLabel');
+                const otherNameEl = document.getElementById('customAbilityOtherName');
+                if (predefinedAbility) {
+                    select.value = predefinedAbility.name || predefinedAbility.original;
+                    if (otherInput) otherInput.value = '';
+                    if (otherLabel) otherLabel.style.display = 'none';
+                    if (otherNameEl) otherNameEl.textContent = '';
+                } else if (currentAbility) {
+                    if (otherInput) otherInput.value = currentAbility;
+                    if (otherLabel) otherLabel.style.display = 'inline';
+                    if (otherNameEl) otherNameEl.textContent = currentAbility;
+                }
+            }
+        })
+        .catch(err => console.error('Error cargando habilidades del Pokémon base:', err));
+}
+
+/**
  * Inicializa el equipo predeterminado
  */
 function initializeTeam() {
@@ -1107,7 +1238,180 @@ document.addEventListener('DOMContentLoaded', () => {
             overlay.addEventListener('click', closeTeamPokemonDetail);
         }
     }
+
+    // Cerrar selector de habilidad al hacer clic en el overlay
+    const abilitySelectorModal = document.getElementById('abilitySelectorModal');
+    if (abilitySelectorModal) {
+        const overlay = abilitySelectorModal.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', closeAbilitySelector);
+        }
+    }
+    
+    // Mostrar etiqueta de "Otra habilidad" si ya hay valor
+    const otherAbilityInput = document.getElementById('customAbilityOther');
+    if (otherAbilityInput && otherAbilityInput.value) {
+        const otherLabel = document.getElementById('customAbilityOtherLabel');
+        const otherNameEl = document.getElementById('customAbilityOtherName');
+        if (otherLabel) otherLabel.style.display = 'inline';
+        if (otherNameEl) otherNameEl.textContent = otherAbilityInput.value;
+    }
 });
+
+// =============================
+// Selector de Habilidad (Modal)
+// =============================
+let allGlobalAbilitiesCache = null; // Cache para lista global de habilidades
+
+function openAbilitySelector() {
+    const modal = document.getElementById('abilitySelectorModal');
+    if (!modal) return;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    // Cargar habilidades globales por defecto
+    switchAbilitySelectorSource('global-abilities');
+}
+
+function closeAbilitySelector() {
+    const modal = document.getElementById('abilitySelectorModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = 'auto';
+    const list = document.getElementById('abilitySelectorList');
+    const detail = document.getElementById('abilitySelectorDetail');
+    if (list) list.innerHTML = '';
+    if (detail) {
+        detail.style.display = 'none';
+        detail.innerHTML = '';
+    }
+    const search = document.getElementById('abilitySelectorSearch');
+    if (search) search.value = '';
+}
+
+function switchAbilitySelectorSource(source, event) {
+    if (event) event.preventDefault();
+    const search = document.getElementById('abilitySelectorSearch');
+    const list = document.getElementById('abilitySelectorList');
+    const detail = document.getElementById('abilitySelectorDetail');
+    if (list) list.innerHTML = '';
+    if (detail) { detail.style.display = 'none'; detail.innerHTML = ''; }
+    if (search) search.value = '';
+
+    // Cargar lista global una vez y filtrar
+    ensureGlobalAbilities().then(() => {
+        renderAbilitySelectorList(allGlobalAbilitiesCache.map(n => ({ name: n.display, original: n.original })));
+    });
+    if (search) {
+        search.oninput = (e) => searchGlobalAbilitiesInList(e.target.value);
+    }
+}
+
+function renderAbilitySelectorList(items) {
+    const list = document.getElementById('abilitySelectorList');
+    if (!list) return;
+    list.innerHTML = items.map(item => `
+        <div class="suggestion-item" data-ability-original="${item.original}" data-ability-name="${item.name}">
+            <div class="pokemon-info">
+                <div class="pokemon-name">${item.name}</div>
+            </div>
+        </div>
+    `).join('');
+
+    // Delegated click to show detail
+    list.onclick = (e) => {
+        const item = e.target.closest('.suggestion-item');
+        if (!item) return;
+        const original = item.getAttribute('data-ability-original');
+        const name = item.getAttribute('data-ability-name');
+        const search = document.getElementById('abilitySelectorSearch');
+        if (search) {
+            search.value = name;
+            searchGlobalAbilitiesInList(name);
+        }
+        showAbilityDetail(original, name);
+    };
+}
+
+function filterAbilitySelectorList(query) {
+    const q = (query || '').toLowerCase();
+    const list = document.getElementById('abilitySelectorList');
+    if (!list) return;
+    [...list.querySelectorAll('.suggestion-item')].forEach(el => {
+        const name = (el.getAttribute('data-ability-name') || '').toLowerCase();
+        el.style.display = name.includes(q) ? '' : 'none';
+    });
+}
+
+async function ensureGlobalAbilities() {
+    if (allGlobalAbilitiesCache) return;
+    try {
+        const resp = await fetch('https://pokeapi.co/api/v2/ability?limit=400');
+        const data = await resp.json();
+        allGlobalAbilitiesCache = (data.results || []).map(x => ({
+            original: x.name,
+            display: x.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        }));
+    } catch (e) {
+        allGlobalAbilitiesCache = [];
+    }
+}
+
+function searchGlobalAbilitiesInList(query) {
+    const q = (query || '').toLowerCase();
+    const list = document.getElementById('abilitySelectorList');
+    if (!list) return;
+    [...list.querySelectorAll('.suggestion-item')].forEach(el => {
+        const name = (el.getAttribute('data-ability-name') || '').toLowerCase();
+        el.style.display = name.includes(q) ? '' : 'none';
+    });
+}
+
+async function showAbilityDetail(original, name) {
+    const detail = document.getElementById('abilitySelectorDetail');
+    if (!detail) return;
+    detail.style.display = 'block';
+    detail.innerHTML = '<p style="padding:10px;">Cargando detalle...</p>';
+
+    let effectText = 'Sin descripción disponible';
+    try {
+        const resp = await fetch(`https://pokeapi.co/api/v2/ability/${encodeURIComponent(original)}`);
+        const data = await resp.json();
+        const entries = data.effect_entries || [];
+        const es = entries.find(e => e.language && e.language.name === 'es');
+        const en = entries.find(e => e.language && e.language.name === 'en');
+        effectText = (es?.effect) || (en?.effect) || effectText;
+    } catch (e) {
+        // ignore
+    }
+
+    detail.innerHTML = `
+        <div style="padding:10px;">
+            <h3 style="margin-top:0;">${name}</h3>
+            <p style="white-space:pre-wrap;">${effectText}</p>
+            <div style="margin-top:10px; display:flex; gap:10px;">
+                <button class="btn btn-primary" id="abilitySelectBtn">Seleccionar</button>
+                <button class="btn btn-secondary" id="abilityBackBtn">Volver</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('abilitySelectBtn').onclick = () => {
+        // Aplicar selección como "Otra habilidad"
+        const otherInput = document.getElementById('customAbilityOther');
+        const otherLabel = document.getElementById('customAbilityOtherLabel');
+        const otherNameEl = document.getElementById('customAbilityOtherName');
+        if (otherInput) otherInput.value = name;
+        if (otherLabel) otherLabel.style.display = 'inline';
+        if (otherNameEl) otherNameEl.textContent = name;
+        closeAbilitySelector();
+    };
+
+    document.getElementById('abilityBackBtn').onclick = () => {
+        detail.style.display = 'none';
+        detail.innerHTML = '';
+    };
+}
 
 // Funciones auxiliares
 function showError(msg) {

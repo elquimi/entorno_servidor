@@ -645,6 +645,274 @@ function initAutocompletado() {
             if (suggestions2) suggestions2.classList.remove('active');
         }
     });
+    
+    // Cerrar selector modal al hacer clic en overlay
+    const selectorModal = document.getElementById('selectorModal');
+    if (selectorModal) {
+        const overlay = selectorModal.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', closeSelectorModal);
+        }
+    }
+}
+
+// ==================== Calculadora de Daño ====================
+let selectedAttacker = null;
+let selectedDefender = null;
+
+/**
+ * Abre el selector de Pokémon atacante
+ */
+function openAttackerSelector() {
+    document.getElementById('selectorTitle').textContent = 'Seleccionar Pokémon Atacante';
+    document.getElementById('selectorSearch').value = '';
+    document.getElementById('selectorList').innerHTML = '';
+    
+    // Mostrar modal
+    const modal = document.getElementById('selectorModal');
+    modal.classList.add('active');
+    
+    // Cargar lista de Pokémon base
+    switchSelectorSource('base');
+}
+
+/**
+ * Abre el selector de Pokémon defensor
+ */
+function openDefenderSelector() {
+    document.getElementById('selectorTitle').textContent = 'Seleccionar Pokémon Defensor';
+    document.getElementById('selectorSearch').value = '';
+    document.getElementById('selectorList').innerHTML = '';
+    
+    // Mostrar modal
+    const modal = document.getElementById('selectorModal');
+    modal.classList.add('active');
+    
+    // Cargar lista de Pokémon base
+    switchSelectorSource('base');
+}
+
+/**
+ * Cambia la fuente del selector (base o equipo)
+ */
+function switchSelectorSource(source, event) {
+    if (event) event.preventDefault();
+    
+    const search = document.getElementById('selectorSearch');
+    const list = document.getElementById('selectorList');
+    
+    // Actualizar tabs activos
+    document.querySelectorAll('.selector-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-source="${source}"]`).classList.add('active');
+    
+    if (source === 'base') {
+        // Cargar Pokémon base
+        fetch(`${BASE_PATH}/api/pokemon/list`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    renderSelectorList(data.data);
+                }
+            });
+    } else if (source === 'team') {
+        // Cargar equipo actual
+        fetch(`${BASE_PATH}/api/team/all`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.data && data.data[0]) {
+                    const members = data.data[0].members || [];
+                    renderSelectorList(members);
+                }
+            });
+    }
+    
+    if (search) {
+        search.value = '';
+        search.oninput = (e) => filterSelectorList(e.target.value, source);
+    }
+}
+
+/**
+ * Renderiza la lista del selector
+ */
+function renderSelectorList(items) {
+    const list = document.getElementById('selectorList');
+    list.innerHTML = '';
+    
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'selector-item';
+        div.innerHTML = `
+            ${item.image ? `<img src="${item.image}" alt="${item.name || item.nickname}">` : ''}
+            <div class="pokemon-info">
+                <div class="pokemon-name">${item.name || item.nickname}</div>
+                <div class="pokemon-id">#${item.id || ''}</div>
+            </div>
+        `;
+        
+        div.addEventListener('click', () => {
+            selectPokemonForDamageCalc(item);
+        });
+        
+        list.appendChild(div);
+    });
+}
+
+/**
+ * Filtra la lista del selector
+ */
+function filterSelectorList(query, source) {
+    const q = (query || '').toLowerCase();
+    const items = document.querySelectorAll('.selector-item');
+    items.forEach(item => {
+        const name = (item.querySelector('.pokemon-name').textContent || '').toLowerCase();
+        item.style.display = name.includes(q) ? '' : 'none';
+    });
+}
+
+/**
+ * Cierra el selector modal
+ */
+function closeSelectorModal() {
+    const modal = document.getElementById('selectorModal');
+    modal.classList.remove('active');
+}
+
+/**
+ * Selecciona un Pokémon para la calculadora
+ */
+function selectPokemonForDamageCalc(pokemon) {
+    const title = document.getElementById('selectorTitle').textContent;
+    
+    if (title.includes('Atacante')) {
+        selectedAttacker = pokemon;
+        displayAttackerInfo(pokemon);
+    } else if (title.includes('Defensor')) {
+        selectedDefender = pokemon;
+        displayDefenderInfo(pokemon);
+    }
+    
+    closeSelectorModal();
+}
+
+/**
+ * Muestra información del atacante
+ */
+function displayAttackerInfo(pokemon) {
+    const box = document.getElementById('attackerInfo');
+    box.innerHTML = `
+        <div style="text-align: center;">
+            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}" style="max-width: 120px; max-height: 120px;">` : ''}
+            <div><strong>${pokemon.name || pokemon.nickname}</strong></div>
+            <div>AT: ${pokemon.attack || 100}</div>
+            <div>AT.ESP: ${pokemon.spAtk || 100}</div>
+        </div>
+    `;
+}
+
+/**
+ * Muestra información del defensor
+ */
+function displayDefenderInfo(pokemon) {
+    const box = document.getElementById('defenderInfo');
+    const types = (pokemon.type || '').split(',').map(t => t.trim()).filter(Boolean);
+    box.innerHTML = `
+        <div style="text-align: center;">
+            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}" style="max-width: 120px; max-height: 120px;">` : ''}
+            <div><strong>${pokemon.name || pokemon.nickname}</strong></div>
+            <div>DEF: ${pokemon.defense || 100}</div>
+            <div>DEF.ESP: ${pokemon.spDef || 100}</div>
+            <div>Tipos: ${types.join(', ') || 'Desconocido'}</div>
+        </div>
+    `;
+}
+
+/**
+ * Calcula el daño entre dos Pokémon usando la fórmula oficial
+ */
+function calculateDamage() {
+    if (!selectedAttacker || !selectedDefender) {
+        alert('Selecciona un Pokémon atacante y defensor');
+        return;
+    }
+    
+    const moveName = document.getElementById('moveNameDmg').value || 'Movimiento';
+    const movePower = parseInt(document.getElementById('movePowerDmg').value) || 0;
+    const moveType = document.getElementById('moveTypeDmg').value || 'Normal';
+    
+    if (movePower <= 0) {
+        alert('Ingresa un poder de movimiento válido (mayor a 0)');
+        return;
+    }
+    
+    const level = 50; // Nivel estándar para cálculos
+    const attackerHP = selectedAttacker.hp || 100;
+    const attackerAtk = selectedAttacker.attack || 100;
+    const attackerSpAtk = selectedAttacker.spAtk || 100;
+    const defenderDef = selectedDefender.defense || 100;
+    const defenderSpDef = selectedDefender.spDef || 100;
+    const defenderHP = selectedDefender.hp || 100;
+    
+    // Determinar si es un movimiento físico o especial (simplificado)
+    // Movimientos físicos generalmente usan Attack/Defense
+    // Movimientos especiales usan Sp.Atk/Sp.Def
+    const isSpecialMove = ['Fuego', 'Agua', 'Eléctrico', 'Planta', 'Hielo', 'Psíquico', 'Dragón', 'Hada'].includes(moveType);
+    
+    const attack = isSpecialMove ? attackerSpAtk : attackerAtk;
+    const defense = isSpecialMove ? defenderSpDef : defenderDef;
+    
+    // Fórmula oficial de Pokémon (Gen III en adelante):
+    // damage = ((((2 * level / 5 + 2) * power * attack / defense) / 50) + 2) * modifiers
+    
+    const baseDamage = ((((2 * level / 5 + 2) * movePower * attack / defense) / 50) + 2);
+    
+    // Aplicar variación (85% - 100%)
+    const minDamage = Math.floor(baseDamage * 0.85);
+    const maxDamage = Math.floor(baseDamage * 1.0);
+    
+    // Calcular porcentaje de HP
+    const percentMin = Math.round((minDamage / defenderHP) * 100);
+    const percentMax = Math.round((maxDamage / defenderHP) * 100);
+    
+    // Calcular koces necesarios (ataques para derrotar)
+    const koces = Math.ceil(defenderHP / maxDamage);
+    
+    const resultsDiv = document.getElementById('damageResults');
+    resultsDiv.innerHTML = `
+        <div class="comparison-container" style="max-width: 100%; padding: 20px; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-radius: 12px; margin-top: 20px; border: 1px solid #e5e7eb;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div style="text-align: center;">
+                    <strong>${selectedAttacker.name || 'Atacante'}</strong>
+                    <div style="font-size: 0.9em; color: #6b7280; margin-top: 4px;">
+                        ${isSpecialMove ? 'Ataque Esp:' : 'Ataque:'} ${attack}
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <strong>${selectedDefender.name || 'Defensor'}</strong>
+                    <div style="font-size: 0.9em; color: #6b7280; margin-top: 4px;">
+                        ${isSpecialMove ? 'Defensa Esp:' : 'Defensa:'} ${defense}
+                    </div>
+                </div>
+            </div>
+            
+            <h3 style="margin: 12px 0; text-align: center;">${moveName}</h3>
+            <p style="text-align: center; margin: 8px 0; color: #666;">
+                Tipo: <strong>${moveType}</strong> | Poder: <strong>${movePower}</strong> | Tipo de movimiento: <strong>${isSpecialMove ? 'Especial' : 'Físico'}</strong>
+            </p>
+            <hr style="margin: 12px 0; border: none; border-top: 1px solid #e5e7eb;">
+            
+            <p style="text-align: center; margin: 12px 0;"><strong>${selectedDefender.name || 'Defensor'}</strong> recibe:</p>
+            <h2 style="color: #e74c3c; margin: 16px 0; text-align: center; font-size: 1.8em;">
+                ${minDamage} - ${maxDamage} de daño
+            </h2>
+            <p style="font-size: 1.1em; text-align: center;">
+                <strong style="color: #667eea;">${percentMin}% - ${percentMax}%</strong> de su HP total
+            </p>
+            <p style="color: #666; font-size: 0.95em; text-align: center; margin-top: 12px;">
+                <strong>HP: ${defenderHP}</strong> | <strong>Koces para K.O.: ${koces}</strong>
+            </p>
+        </div>
+    `;
 }
 
 // Inicializar autocompletado cuando cargue el DOM

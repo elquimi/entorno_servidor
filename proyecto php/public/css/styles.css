@@ -1392,3 +1392,92 @@ body {
         max-width: 90vw;
     }
 }
+
+/* Selector items para calculadora de daño */
+.selector-item {
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+}
+
+.selector-item:hover {
+    background: linear-gradient(135deg, #f3f4f6 0%, #eff0f2 100%);
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    transform: translateY(-2px);
+}
+
+.selector-item img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2px;
+}
+
+.selector-item .pokemon-info {
+    flex: 1;
+}
+
+.selector-item .pokemon-name {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95em;
+}
+
+.selector-item .pokemon-id {
+    font-size: 0.85em;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+/* Selector tabs */
+.selector-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.selector-tab {
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.3s ease;
+    font-size: 0.95em;
+}
+
+.selector-tab:hover {
+    color: #667eea;
+}
+
+.selector-tab.active {
+    border-bottom-color: #667eea;
+    color: #667eea;
+}
+
+/* Pokemon info boxes */
+.pokemon-info-box {
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 12px;
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+}

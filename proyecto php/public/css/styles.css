@@ -1101,32 +1101,59 @@ body {
 /* Moves List */
 .moves-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    padding: 10px;
+    background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%);
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
 }
 
 .move-item {
-    background: #f0f0f0;
-    padding: 10px;
-    border-radius: 6px;
+    background: linear-gradient(145deg, #ffffff 0%, #f6f7fb 100%);
+    padding: 12px 14px;
+    border-radius: 12px;
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    font-size: 0.9em;
+    gap: 10px;
+    font-size: 0.95em;
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: all 0.2s;
+    border: 1px solid #e6e8f0;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.move-item::after {
+    content: '';
+    position: absolute;
+    right: -10px;
+    top: -12px;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    opacity: 0.08;
+    transform: rotate(18deg);
+    transition: opacity 0.15s ease;
 }
 
 .move-item:hover {
-    background: #e8f0fe;
-    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12), 0 1px 0 rgba(255,255,255,0.8);
+    border-color: #cfd3e2;
+}
+
+.move-item:hover::after {
+    opacity: 0.2;
 }
 
 .move-item.selected {
-    background: #d4e3fc;
+    background: linear-gradient(145deg, #e7edff 0%, #dfe7ff 100%);
     border-color: #667eea;
+    box-shadow: 0 10px 24px rgba(102,126,234,0.25);
 }
 
 .move-item input[type="checkbox"] {
@@ -1142,6 +1169,74 @@ body {
     flex: 1;
     margin-left: 0;
     cursor: pointer;
+    font-weight: 700;
+    color: #2d2a32;
+    letter-spacing: -0.1px;
+}
+
+/* Move Select Dropdowns */
+#existingMovesSection select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #e6e8f0;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #ffffff 0%, #f6f7fb 100%);
+    font-size: 0.95em;
+    font-weight: 600;
+    color: #2d2a32;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#existingMovesSection select:hover {
+    border-color: #cfd3e2;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#existingMovesSection select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
+}
+
+/* Custom Move Select Dropdowns */
+#customPokemonForm select[id^="customMove"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #e6e8f0;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #ffffff 0%, #f6f7fb 100%);
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #2d2a32;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#customPokemonForm select[id^="customMove"]:hover {
+    border-color: #cfd3e2;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#customPokemonForm select[id^="customMove"]:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
+}
+
+#customPokemonForm input[id^="customMoveSearch"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.9em;
+    transition: border-color 0.2s ease;
+}
+
+#customPokemonForm input[id^="customMoveSearch"]:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
 }
 
 .move-item .remove-move {

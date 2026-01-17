@@ -35,10 +35,78 @@ function loadAvailableMoves() {
         .then(data => {
             if (data.success && data.data) {
                 allMoves = data.data;
+                populateCustomMoveSelects();
             }
         })
         .catch(err => console.error('Error loading moves:', err));
 }
+
+/**
+ * Poblar los 4 selects de movimientos personalizados con TODOS los movimientos
+ */
+function populateCustomMoveSelects() {
+    if (!allMoves || allMoves.length === 0) return;
+    
+    const sortedMoves = [...allMoves].sort((a, b) => {
+        const aName = (typeof a === 'string' ? a : (a.name || a.original || '')).toLowerCase();
+        const bName = (typeof b === 'string' ? b : (b.name || b.original || '')).toLowerCase();
+        return aName.localeCompare(bName, 'es');
+    });
+    
+    for (let i = 1; i <= 4; i++) {
+        const select = document.getElementById(`customMove${i}`);
+        if (select) {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Seleccionar...</option>';
+            sortedMoves.forEach(move => {
+                const moveName = typeof move === 'string' ? move : (move.name || move.original);
+                const option = document.createElement('option');
+                option.value = moveName;
+                option.textContent = moveName;
+                select.appendChild(option);
+            });
+            if (currentValue) select.value = currentValue;
+        }
+    }
+}
+
+/**
+ * Filtra un select de movimiento personalizado individual por búsqueda
+ */
+function filterCustomMoveSelect(selectNum, query) {
+    const select = document.getElementById(`customMove${selectNum}`);
+    if (!select || !allMoves) return;
+    const q = (query || '').trim().toLowerCase();
+    const currentValue = select.value;
+    
+    let movesToShow = allMoves;
+    if (q) {
+        movesToShow = allMoves.filter(move => {
+            const moveName = (typeof move === 'string' ? move : (move.name || move.original || '')).toLowerCase();
+            return moveName.startsWith(q);
+        });
+    }
+    
+    const sortedMoves = [...movesToShow].sort((a, b) => {
+        const aName = (typeof a === 'string' ? a : (a.name || a.original || '')).toLowerCase();
+        const bName = (typeof b === 'string' ? b : (b.name || b.original || '')).toLowerCase();
+        return aName.localeCompare(bName, 'es');
+    });
+    
+    select.innerHTML = '<option value="">Seleccionar...</option>';
+    sortedMoves.forEach(move => {
+        const moveName = typeof move === 'string' ? move : (move.name || move.original);
+        const option = document.createElement('option');
+        option.value = moveName;
+        option.textContent = moveName;
+        select.appendChild(option);
+    });
+    
+    if (currentValue && movesToShow.some(m => (typeof m === 'string' ? m : (m.name || m.original)) === currentValue)) {
+        select.value = currentValue;
+    }
+}
+
 
 /**
  * Abre el modal para crear un Pokémon
@@ -140,9 +208,11 @@ function resetExistingForm() {
     document.getElementById('existingPokemonInfo').innerHTML = '';
     document.getElementById('existingAbilitiesSection').style.display = 'none';
     document.getElementById('existingMovesSection').style.display = 'none';
-    document.getElementById('existingMoveSearch').value = '';
+    for (let i = 1; i <= 4; i++) {
+        const select = document.getElementById(`existingMove${i}`);
+        if (select) select.value = '';
+    }
     selectedBasePokemon = null;
-    selectedMovesForTeam = [];
 }
 
 /**
@@ -293,7 +363,10 @@ function resetCustomForm() {
     const otherNameEl = document.getElementById('customAbilityOtherName');
     if (otherLabel) otherLabel.style.display = 'none';
     if (otherNameEl) otherNameEl.textContent = '';
-    document.getElementById('customMoves').value = '';
+    for (let i = 1; i <= 4; i++) {
+        const select = document.getElementById(`customMove${i}`);
+        if (select) select.value = '';
+    }
     document.getElementById('customBasePokeName').value = '';
     selectedCustomTypes = [];
 }
@@ -491,8 +564,6 @@ function loadExistingAbilities(pokemonName) {
  */
 function loadExistingMoves(pokemonName) {
     const section = document.getElementById('existingMovesSection');
-    const movesList = document.getElementById('existingMovesList');
-    const searchInput = document.getElementById('existingMoveSearch');
     
     fetch(`${BASE_PATH}/api/team/pokemon/moves/${encodeURIComponent(pokemonName)}`)
         .then(r => r.json())
@@ -501,15 +572,17 @@ function loadExistingMoves(pokemonName) {
                 section.style.display = 'block';
                 allAvailableMoves = data.data;
                 
-                // Solo limpiar si NO estamos editando (preservar movimientos seleccionados)
-                if (!editingPokemonId) {
-                    selectedMovesForTeam = [];
+                // Poblar los 4 selects con los movimientos
+                populateMoveSelects(allAvailableMoves);
+                
+                // Configurar búsqueda/filtrado en cada select
+                for (let i = 1; i <= 4; i++) {
+                    const select = document.getElementById(`existingMove${i}`);
+                    if (select) {
+                        select.addEventListener('input', (e) => filterMoveSelect(i, e.target.value));
+                        select.addEventListener('keyup', (e) => filterMoveSelect(i, e.target.value));
+                    }
                 }
-                
-                renderExistingMovesList(allAvailableMoves);
-                
-                // Event listener para búsqueda de movimientos
-                searchInput.addEventListener('input', (e) => filterExistingMoves(e.target.value));
             } else {
                 section.style.display = 'none';
             }
@@ -518,6 +591,71 @@ function loadExistingMoves(pokemonName) {
             console.error(err);
             section.style.display = 'none';
         });
+}
+
+/**
+ * Poblar los 4 selects de movimientos
+ */
+function populateMoveSelects(moves) {
+    const sortedMoves = [...moves].sort((a, b) => {
+        const aName = (typeof a === 'string' ? a : (a.name || a.original || '')).toLowerCase();
+        const bName = (typeof b === 'string' ? b : (b.name || b.original || '')).toLowerCase();
+        return aName.localeCompare(bName, 'es');
+    });
+    
+    for (let i = 1; i <= 4; i++) {
+        const select = document.getElementById(`existingMove${i}`);
+        if (select) {
+            select.innerHTML = '<option value="">Seleccionar...</option>';
+            sortedMoves.forEach(move => {
+                const moveName = typeof move === 'string' ? move : (move.name || move.original);
+                const option = document.createElement('option');
+                option.value = moveName;
+                option.textContent = moveName;
+                select.appendChild(option);
+            });
+        }
+    }
+}
+
+/**
+ * Filtra un select de movimiento por búsqueda
+ */
+function filterMoveSelect(selectNum, query) {
+    const select = document.getElementById(`existingMove${selectNum}`);
+    if (!select) return;
+    const q = (query || '').trim().toLowerCase();
+    const currentValue = select.value;
+    
+    if (!q) {
+        populateMoveSelects(allAvailableMoves);
+        if (currentValue) select.value = currentValue;
+        return;
+    }
+    
+    const filtered = allAvailableMoves.filter(move => {
+        const moveName = (typeof move === 'string' ? move : (move.name || move.original || '')).toLowerCase();
+        return moveName.startsWith(q);
+    });
+    
+    const sortedFiltered = [...filtered].sort((a, b) => {
+        const aName = (typeof a === 'string' ? a : (a.name || a.original || '')).toLowerCase();
+        const bName = (typeof b === 'string' ? b : (b.name || b.original || '')).toLowerCase();
+        return aName.localeCompare(bName, 'es');
+    });
+    
+    select.innerHTML = '<option value="">Seleccionar...</option>';
+    sortedFiltered.forEach(move => {
+        const moveName = typeof move === 'string' ? move : (move.name || move.original);
+        const option = document.createElement('option');
+        option.value = moveName;
+        option.textContent = moveName;
+        select.appendChild(option);
+    });
+    
+    if (currentValue && filtered.some(m => (typeof m === 'string' ? m : (m.name || m.original)) === currentValue)) {
+        select.value = currentValue;
+    }
 }
 
 /**
@@ -552,85 +690,7 @@ function filterExistingAbilities(query) {
     select.innerHTML = html;
 }
 
-/**
- * Filtra los movimientos disponibles
- */
-function filterExistingMoves(query) {
-    const q = (query || '').trim().toLowerCase();
-    
-    // Filtrar solo movimientos que empiezan con el query
-    const filtered = allAvailableMoves.filter(move => 
-        (move.name || move).toLowerCase().startsWith(q)
-    );
-    
-    // Ordenar alfabéticamente
-    filtered.sort((a, b) => {
-        const aName = (typeof a === 'string' ? a : (a.name || a.original || '')).toLowerCase();
-        const bName = (typeof b === 'string' ? b : (b.name || b.original || '')).toLowerCase();
-        return aName.localeCompare(bName, 'es');
-    });
-    
-    renderExistingMovesList(filtered);
-}
 
-/**
- * Renderiza la lista de movimientos del Pokémon existente
- */
-function renderExistingMovesList(moves) {
-    const container = document.getElementById('existingMovesList');
-    container.innerHTML = '';
-    
-    moves.forEach((move, idx) => {
-        const moveName = typeof move === 'string' ? move : (move.name || move.original);
-        const li = document.createElement('li');
-        const isSelected = selectedMovesForTeam.includes(moveName);
-        li.className = 'move-item' + (isSelected ? ' selected' : '');
-        li.style.marginBottom = '8px';
-        
-        li.innerHTML = `
-            <input type="checkbox" class="move-checkbox" value="${moveName}" ${isSelected ? 'checked' : ''}>
-            <span class="move-name">${moveName}</span>
-        `;
-        
-        const checkbox = li.querySelector('.move-checkbox');
-        checkbox.addEventListener('change', (e) => {
-            toggleExistingMove(moveName, e.target.checked);
-            // Actualizar clase del contenedor
-            if (e.target.checked) {
-                li.classList.add('selected');
-            } else {
-                li.classList.remove('selected');
-            }
-        });
-        
-        // Hacer que todo el contenedor sea clickeable
-        li.addEventListener('click', (e) => {
-            if (e.target !== checkbox) {
-                checkbox.click();
-            }
-        });
-        
-        container.appendChild(li);
-    });
-}
-
-/**
- * Alterna un movimiento seleccionado
- */
-function toggleExistingMove(moveName, isChecked) {
-    if (isChecked) {
-        if (selectedMovesForTeam.length < 4) {
-            selectedMovesForTeam.push(moveName);
-        } else {
-            // No permitir más de 4 movimientos
-            document.querySelectorAll('.move-checkbox').forEach(cb => {
-                if (cb.value === moveName) cb.checked = false;
-            });
-        }
-    } else {
-        selectedMovesForTeam = selectedMovesForTeam.filter(m => m !== moveName);
-    }
-}
 
 /**
  * Muestra checkboxes de movimientos
@@ -695,7 +755,12 @@ function savePokemonToTeam() {
             spDef: selectedBasePokemon.spDef,
             speed: selectedBasePokemon.speed,
             ability: document.getElementById('existingAbility').value,
-            moves: selectedMovesForTeam.slice(0, 4),
+            moves: [
+                document.getElementById('existingMove1')?.value,
+                document.getElementById('existingMove2')?.value,
+                document.getElementById('existingMove3')?.value,
+                document.getElementById('existingMove4')?.value
+            ].filter(m => m),
             type: selectedBasePokemon.type,
             image: selectedBasePokemon.image
         };
@@ -706,12 +771,12 @@ function savePokemonToTeam() {
             return;
         }
         
-        const movesInput = document.getElementById('customMoves').value;
-        const moves = movesInput
-            .split(',')
-            .map(m => m.trim())
-            .filter(m => m)
-            .slice(0, 4);
+        const moves = [
+            document.getElementById('customMove1')?.value,
+            document.getElementById('customMove2')?.value,
+            document.getElementById('customMove3')?.value,
+            document.getElementById('customMove4')?.value
+        ].filter(m => m);
         
         // Obtener los tipos de los selects
         const type1 = document.getElementById('customType1').value;
@@ -883,7 +948,15 @@ function editPokemon(pokemonId) {
         document.getElementById('customSpAtk').value = pokemon.spAtk || 100;
         document.getElementById('customSpDef').value = pokemon.spDef || 100;
         document.getElementById('customSpeed').value = pokemon.speed || 100;
-        document.getElementById('customMoves').value = (pokemon.moves || []).join(', ');
+        
+        // Rellenar movimientos
+        const moves = pokemon.moves || [];
+        for (let i = 0; i < 4; i++) {
+            const select = document.getElementById(`customMove${i + 1}`);
+            if (select && moves[i]) {
+                select.value = moves[i];
+            }
+        }
         
         // Cargar tipos
         const types = (pokemon.type || '').split(', ').filter(t => t);
@@ -905,9 +978,6 @@ function editPokemon(pokemonId) {
     } else {
         // Mostrar formulario de pokémon existente
         switchPokemonType('existing');
-        
-        // Precargar movimientos seleccionados
-        selectedMovesForTeam = pokemon.moves || [];
         
         // Rellenar campo de búsqueda
         document.getElementById('existingPokeName').value = pokemon.basePokemonName || '';
@@ -935,6 +1005,17 @@ function editPokemon(pokemonId) {
         if (pokemon.ability) {
             document.getElementById('existingAbility').value = pokemon.ability;
         }
+        
+        // Establecer los movimientos en los selects
+        setTimeout(() => {
+            const moves = pokemon.moves || [];
+            for (let i = 0; i < 4; i++) {
+                const select = document.getElementById(`existingMove${i + 1}`);
+                if (select && moves[i]) {
+                    select.value = moves[i];
+                }
+            }
+        }, 100);
     }
 }
 
@@ -1255,6 +1336,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const otherNameEl = document.getElementById('customAbilityOtherName');
         if (otherLabel) otherLabel.style.display = 'inline';
         if (otherNameEl) otherNameEl.textContent = otherAbilityInput.value;
+    }
+    
+    // Event listeners para búsqueda de movimientos personalizados (1 por cada select)
+    for (let i = 1; i <= 4; i++) {
+        const searchInput = document.getElementById(`customMoveSearch${i}`);
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                filterCustomMoveSelect(i, e.target.value);
+            });
+        }
     }
 });
 

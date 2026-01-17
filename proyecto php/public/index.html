@@ -205,12 +205,33 @@
                     <select id="existingAbility"></select>
                 </div>
                 <div id="existingMovesSection" class="form-group" style="display:none;">
-                    <label>Ataques (máximo 4, usa el buscador):</label>
-                    <div class="autocomplete-wrapper" style="margin-bottom: 15px;">
-                        <input type="text" id="existingMoveSearch" placeholder="Buscar ataque..." autocomplete="off">
-                        <ul id="existingMoveSuggestions" class="autocomplete-list"></ul>
+                    <label>Ataques (máximo 4):</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Ataque 1:</label>
+                            <select id="existingMove1">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Ataque 2:</label>
+                            <select id="existingMove2">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Ataque 3:</label>
+                            <select id="existingMove3">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Ataque 4:</label>
+                            <select id="existingMove4">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="moves-list" id="existingMovesList"></div>
                 </div>
             </div>
 
@@ -323,8 +344,37 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Ataques (máximo 4, separados por coma):</label>
-                    <textarea id="customMoves" placeholder="Ej: Golpe, Rayo, Lanzallamas, Terremoto" rows="3"></textarea>
+                    <label>Ataques (máximo 4):</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Ataque 1:</label>
+                            <input type="text" id="customMoveSearch1" placeholder="Buscar..." autocomplete="off" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 4px;">
+                            <select id="customMove1" size="5" style="width: 100%;">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Ataque 2:</label>
+                            <input type="text" id="customMoveSearch2" placeholder="Buscar..." autocomplete="off" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 4px;">
+                            <select id="customMove2" size="5" style="width: 100%;">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Ataque 3:</label>
+                            <input type="text" id="customMoveSearch3" placeholder="Buscar..." autocomplete="off" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 4px;">
+                            <select id="customMove3" size="5" style="width: 100%;">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Ataque 4:</label>
+                            <input type="text" id="customMoveSearch4" placeholder="Buscar..." autocomplete="off" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 4px;">
+                            <select id="customMove4" size="5" style="width: 100%;">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 

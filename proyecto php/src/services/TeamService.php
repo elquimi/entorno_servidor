@@ -87,8 +87,44 @@ class TeamService
      */
     public function getAllMoves()
     {
-        $moves = json_decode(file_get_contents($this->movesFile), true);
-        return $moves ?: $this->getCommonMoves();
+        // Intentar obtener desde PokeAPI
+        try {
+            $url = 'https://pokeapi.co/api/v2/move?limit=2000';
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode === 200 && $response) {
+                $data = json_decode($response, true);
+                if (isset($data['results']) && is_array($data['results'])) {
+                    // Convertir nombres de formato slug a título
+                    $moves = array_map(function($move) {
+                        return [
+                            'name' => ucwords(str_replace('-', ' ', $move['name'])),
+                            'original' => $move['name']
+                        ];
+                    }, $data['results']);
+                    
+                    // Guardar en caché
+                    file_put_contents($this->movesFile, json_encode($moves));
+                    return $moves;
+                }
+            }
+        } catch (Exception $e) {
+            // Si falla PokeAPI, intentar cargar desde archivo local
+        }
+
+        // Fallback: archivo local o movimientos comunes
+        if (file_exists($this->movesFile)) {
+            $moves = json_decode(file_get_contents($this->movesFile), true);
+            if ($moves) return $moves;
+        }
+        
+        return $this->getCommonMoves();
     }
 
     /**

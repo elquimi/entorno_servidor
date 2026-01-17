@@ -6,6 +6,10 @@ let currentPokemonType = 'existing'; // existing o custom
 let selectedBasePokemon = null;
 let selectedMovesForTeam = []; // Movimientos seleccionados para el Pokémon actual
 let allAvailableMoves = []; // Todos los movimientos del Pokémon seleccionado
+let allAbilitiesForCurrentPokemon = []; // Todas las habilidades del Pokémon seleccionado
+let customBasePokemon = null; // Pokémon base para imagen en personalizados
+let selectedCustomTypes = []; // Tipos seleccionados para Pokémon personalizado
+const TYPE_LIST = ['Normal','Fuego','Agua','Eléctrico','Planta','Hielo','Lucha','Veneno','Tierra','Volador','Psíquico','Bicho','Roca','Fantasma','Dragón','Siniestro','Acero','Hada'];
 
 /**
  * Carga todos los Pokémon disponibles
@@ -80,12 +84,35 @@ function switchPokemonType(type, event) {
     event?.target?.classList.add('active');
     document.querySelector(`[data-type="${type}"]`)?.classList.add('active');
     
-    // Mostrar/ocultar formularios
-    document.getElementById('existingPokemonForm')?.classList.toggle('active', type === 'existing');
-    document.getElementById('customPokemonForm')?.classList.toggle('active', type === 'custom');
+    // Mostrar/ocultar formularios (forzar display para evitar inline style conflicts)
+    const existingForm = document.getElementById('existingPokemonForm');
+    const customForm = document.getElementById('customPokemonForm');
+    if (existingForm && customForm) {
+        existingForm.classList.toggle('active', type === 'existing');
+        customForm.classList.toggle('active', type === 'custom');
+        existingForm.style.display = type === 'existing' ? 'block' : 'none';
+        customForm.style.display = type === 'custom' ? 'block' : 'none';
+    }
     
-    if (type === 'existing') {
-        resetExistingForm();
+    // Solo resetear si NO estamos editando
+    if (!editingPokemonId) {
+        if (type === 'existing') {
+            resetExistingForm();
+        } else if (type === 'custom') {
+            resetCustomForm();
+        }
+    }
+
+    // Wire up custom base & type search inputs when visible
+    if (type === 'custom') {
+        const baseInput = document.getElementById('customBasePokeName');
+        if (baseInput) {
+            baseInput.oninput = (e) => getSuggestionsForCustomBase(e.target.value);
+        }
+        const typeInput = document.getElementById('customTypeSearch');
+        if (typeInput) {
+            typeInput.oninput = (e) => renderCustomTypeSuggestions(e.target.value);
+        }
     }
 }
 
@@ -100,12 +127,15 @@ function resetForms() {
     // Cambiar botón de vuelta a "Agregar"
     const saveBtn = document.querySelector('button[onclick="savePokemonToTeam()"]');
     if (saveBtn) saveBtn.textContent = 'Agregar al Equipo';
+    customBasePokemon = null;
 }
 
 /**
  * Reinicia formulario existente
  */
 function resetExistingForm() {
+    console.log('🔴 resetExistingForm LLAMADO');
+    console.trace(); // Mostrar stack trace para ver de dónde se llama
     document.getElementById('existingPokeName').value = '';
     document.getElementById('existingPokemonInfo').innerHTML = '';
     document.getElementById('existingAbilitiesSection').style.display = 'none';
@@ -114,6 +144,124 @@ function resetExistingForm() {
     selectedBasePokemon = null;
     selectedMovesForTeam = [];
 }
+
+/**
+ * Sugerencias para Pokémon base en personalizados
+ */
+function getSuggestionsForCustomBase(query) {
+    if (!query || query.length < 1) return;
+    const q = query.toLowerCase().trim();
+    const filtered = allPokemon.filter(pokemon => (pokemon.name || '').toLowerCase().startsWith(q));
+    displayCustomBaseSuggestions(filtered);
+}
+
+function displayCustomBaseSuggestions(suggestions) {
+    const list = document.getElementById('customBaseSuggestions');
+    if (!list) return;
+    list.innerHTML = '';
+    suggestions.sort((a, b) => (a.name || '').localeCompare((b.name || ''), 'es'));
+    suggestions.forEach(pokemon => {
+        const li = document.createElement('li');
+        li.className = 'suggestion-item';
+        li.setAttribute('data-pokemon-name', pokemon.name);
+        li.innerHTML = `
+            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}" onerror="this.style.display='none'">` : ''}
+            <div class="pokemon-info">
+                <div class="pokemon-name">${pokemon.name}</div>
+                <div class="pokemon-id">#${pokemon.id || ''}</div>
+            </div>
+        `;
+        list.appendChild(li);
+    });
+    list.classList.add('active');
+}
+
+// Selección de Pokémon base para personalizados
+document.addEventListener('mousedown', (e) => {
+    const item = e.target.closest('#customBaseSuggestions .suggestion-item');
+    if (item) {
+        const name = item.getAttribute('data-pokemon-name');
+        const base = allPokemon.find(p => p.name === name);
+        if (base) {
+            console.log('🔍 Pokémon base seleccionado:', base);
+            
+            customBasePokemon = base;
+            const input = document.getElementById('customBasePokeName');
+            if (input) input.value = base.name;
+            const list = document.getElementById('customBaseSuggestions');
+            if (list) list.classList.remove('active');
+            
+            // Buscar estadísticas completas del Pokémon desde la API
+            console.log('📊 Buscando estadísticas completas para:', base.name);
+            fetch(`${BASE_PATH}/api/pokemon/search?name=${encodeURIComponent(base.name)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const pokemonData = data.data;
+                        console.log('✅ Datos completos obtenidos:', pokemonData);
+                        
+                        // Cargar automáticamente las estadísticas del Pokémon
+                        document.getElementById('customHP').value = pokemonData.hp || 100;
+                        document.getElementById('customAtk').value = pokemonData.attack || 100;
+                        document.getElementById('customDef').value = pokemonData.defense || 100;
+                        document.getElementById('customSpAtk').value = pokemonData.spAtk || 100;
+                        document.getElementById('customSpDef').value = pokemonData.spDef || 100;
+                        document.getElementById('customSpeed').value = pokemonData.speed || 100;
+                        console.log('✅ Estadísticas cargadas desde API');
+                    }
+                })
+                .catch(err => console.error('❌ Error al cargar estadísticas:', err));
+        }
+    }
+});
+
+/**
+ * Filtra tipos por prefijo y reconstruye el select
+ */
+function renderCustomTypeSuggestions(query) {
+    const q = (query || '').trim().toLowerCase();
+    const list = document.getElementById('customTypeSuggestions');
+    if (!list) return;
+    const filtered = q ? TYPE_LIST.filter(t => t.toLowerCase().startsWith(q)) : TYPE_LIST.slice();
+    filtered.sort((a, b) => a.localeCompare(b, 'es'));
+    list.innerHTML = '';
+    filtered.forEach(type => {
+        const li = document.createElement('li');
+        li.className = 'suggestion-item' + (selectedCustomTypes.includes(type) ? ' selected' : '');
+        li.setAttribute('data-type-name', type);
+        li.innerHTML = `<div class="pokemon-info"><div class="pokemon-name">${type}</div></div>`;
+        list.appendChild(li);
+    });
+    list.classList.add('active');
+}
+
+function renderSelectedCustomTypes() {
+    const container = document.getElementById('customTypeSelected');
+    if (!container) return;
+    container.innerHTML = selectedCustomTypes.map(t => `<span class="badge">${t}</span>`).join('');
+}
+
+// Toggle type selection with max 2
+document.addEventListener('mousedown', (e) => {
+    const item = e.target.closest('#customTypeSuggestions .suggestion-item');
+    if (item) {
+        const typeName = item.getAttribute('data-type-name');
+        const idx = selectedCustomTypes.indexOf(typeName);
+        if (idx === -1) {
+            if (selectedCustomTypes.length < 2) {
+                selectedCustomTypes.push(typeName);
+                item.classList.add('selected');
+            } else {
+                // If already 2, replace the oldest (optional) or ignore
+                // Here we ignore to keep UX simple
+            }
+        } else {
+            selectedCustomTypes.splice(idx, 1);
+            item.classList.remove('selected');
+        }
+        renderSelectedCustomTypes();
+    }
+});
 
 /**
  * Reinicia formulario personalizado
@@ -129,6 +277,13 @@ function resetCustomForm() {
     document.getElementById('customSpeed').value = '100';
     document.getElementById('customAbility').value = '';
     document.getElementById('customMoves').value = '';
+    const typeSearch = document.getElementById('customTypeSearch');
+    const typeList = document.getElementById('customTypeSuggestions');
+    const typeSelected = document.getElementById('customTypeSelected');
+    if (typeSearch) typeSearch.value = '';
+    if (typeList) { typeList.innerHTML = ''; typeList.classList.remove('active'); }
+    if (typeSelected) typeSelected.innerHTML = '';
+    selectedCustomTypes = [];
 }
 
 /**
@@ -201,12 +356,16 @@ function selectExistingPokemon(pokemonName) {
  * Muestra información del Pokémon existente
  */
 function displayExistingPokemonInfo(pokemon) {
+    console.log('🟢 displayExistingPokemonInfo LLAMADO con:', pokemon);
     const info = document.getElementById('existingPokemonInfo');
-    info.innerHTML = `
+    const pokemonName = pokemon.name || pokemon.basePokemonName || 'Desconocido';
+    const pokemonId = pokemon.id || pokemon.basePokemonId || '?';
+    
+    const html = `
         <div class="pokemon-info-section">
-            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}">` : ''}
+            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemonName}" style="max-width: 200px; max-height: 200px;">` : 'SIN IMAGEN'}
             <div style="margin-top: 10px;">
-                <strong>${pokemon.name}</strong> (#${pokemon.id})
+                <strong>${pokemonName}</strong> (#${pokemonId})
                 <div class="stat-row" style="margin-top: 10px;">
                     <span>HP: <strong>${pokemon.hp}</strong></span>
                     <span>Ataque: <strong>${pokemon.attack}</strong></span>
@@ -220,6 +379,9 @@ function displayExistingPokemonInfo(pokemon) {
             </div>
         </div>
     `;
+    console.log('🟢 HTML a insertar:', html);
+    info.innerHTML = html;
+    console.log('🟢 innerHTML establecido, contenido actual:', info.innerHTML);
 }
 
 /**
@@ -270,6 +432,7 @@ function loadExistingAbilities(pokemonName) {
             // Filtrar habilidades (priorizando no ocultas)
             const abilities = data.data;
             console.log('📋 Todas las habilidades:', abilities);
+            allAbilitiesForCurrentPokemon = abilities;
             const normalAbility = abilities.find(a => !a.isHidden);
             const selectedAbility = normalAbility || abilities[0];
             
@@ -297,6 +460,12 @@ function loadExistingAbilities(pokemonName) {
             console.log('📝 Select options:', select.options.length, 'opciones');
             for (let i = 0; i < select.options.length; i++) {
                 console.log(`   Opción ${i}:`, select.options[i].value, '=', select.options[i].text);
+            }
+            // Filtro de habilidades por prefijo (empieza con)
+            const abilitySearch = document.getElementById('existingAbilitySearch');
+            if (abilitySearch) {
+                abilitySearch.value = '';
+                abilitySearch.oninput = (e) => filterExistingAbilities(e.target.value);
             }
         })
         .catch(error => {
@@ -337,6 +506,38 @@ function loadExistingMoves(pokemonName) {
             console.error(err);
             section.style.display = 'none';
         });
+}
+
+/**
+ * Filtra habilidades disponibles por prefijo (empieza con)
+ */
+function filterExistingAbilities(query) {
+    const q = (query || '').trim().toLowerCase();
+    const select = document.getElementById('existingAbility');
+    if (!select) return;
+    const source = allAbilitiesForCurrentPokemon || [];
+    if (!source.length) return;
+    // Si no hay query, restaurar lista completa con preferencia de habilidad normal
+    if (!q) {
+        const normalAbility = source.find(a => !a.isHidden);
+        const selectedAbility = normalAbility || source[0];
+        let html = '';
+        source.forEach(ability => {
+            const abilityName = ability.name || ability.original || 'Sin nombre';
+            const isSelected = (ability === selectedAbility) ? 'selected' : '';
+            html += `<option value="${abilityName}" ${isSelected}>${abilityName}</option>`;
+        });
+        select.innerHTML = html;
+        return;
+    }
+    // Filtrar por startsWith y reconstruir
+    const filtered = source.filter(a => (a.name || a.original || '').toLowerCase().startsWith(q));
+    let html = '';
+    filtered.forEach(ability => {
+        const abilityName = ability.name || ability.original || 'Sin nombre';
+        html += `<option value="${abilityName}">${abilityName}</option>`;
+    });
+    select.innerHTML = html;
 }
 
 /**
@@ -500,11 +701,37 @@ function savePokemonToTeam() {
             .filter(m => m)
             .slice(0, 4);
         
+        const typeString = (selectedCustomTypes && selectedCustomTypes.length > 0)
+            ? selectedCustomTypes.join(', ')
+            : document.getElementById('customPokeType').value;
+        
+        // Obtener el nombre del Pokémon base del input (si existe)
+        const basePokemonNameInput = document.getElementById('customBasePokeName').value.trim();
+        
+        // Determinar imagen y basePokemon
+        let finalImage = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/default.png';
+        let basePokemonNameValue = basePokemonNameInput; // Usar el valor del input
+        let basePokemonIdValue = null;
+        
+        // Si hay un Pokémon base seleccionado, usar sus datos
+        if (customBasePokemon && customBasePokemon.name) {
+            finalImage = customBasePokemon.image || finalImage;
+            basePokemonIdValue = customBasePokemon.id || null;
+            console.log('🎨 Guardando con Pokémon base:', basePokemonNameValue, 'Imagen:', finalImage);
+        } else if (basePokemonNameInput) {
+            // Si solo hay texto en el input, buscar el Pokémon en allPokemon
+            const foundPokemon = allPokemon.find(p => p.name === basePokemonNameInput);
+            if (foundPokemon) {
+                finalImage = foundPokemon.image || finalImage;
+                basePokemonIdValue = foundPokemon.id || null;
+            }
+        }
+        
         pokemonData = {
             isCustom: true,
             nickname: nickname,
-            basePokemonName: '',
-            basePokemonId: null,
+            basePokemonName: basePokemonNameValue,
+            basePokemonId: basePokemonIdValue,
             hp: parseInt(document.getElementById('customHP').value),
             attack: parseInt(document.getElementById('customAtk').value),
             defense: parseInt(document.getElementById('customDef').value),
@@ -513,8 +740,8 @@ function savePokemonToTeam() {
             speed: parseInt(document.getElementById('customSpeed').value),
             ability: document.getElementById('customAbility').value,
             moves: moves,
-            type: document.getElementById('customPokeType').value,
-            image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/default.png'
+            type: typeString,
+            image: finalImage
         };
     }
     
@@ -628,6 +855,15 @@ function editPokemon(pokemonId) {
         document.getElementById('customSpeed').value = pokemon.speed || 100;
         document.getElementById('customAbility').value = pokemon.ability || '';
         document.getElementById('customMoves').value = (pokemon.moves || []).join(', ');
+        
+        // Rellenar Pokémon base si existe
+        if (pokemon.basePokemonName) {
+            document.getElementById('customBasePokeName').value = pokemon.basePokemonName;
+            const basePokemon = allPokemon.find(p => p.name === pokemon.basePokemonName);
+            if (basePokemon) {
+                customBasePokemon = basePokemon;
+            }
+        }
     } else {
         // Mostrar formulario de pokémon existente
         switchPokemonType('existing');
@@ -637,10 +873,30 @@ function editPokemon(pokemonId) {
         
         // Rellenar campo de búsqueda
         document.getElementById('existingPokeName').value = pokemon.basePokemonName || '';
-        selectedBasePokemon = pokemon;
-        displayExistingPokemonInfo(pokemon);
+        
+        // Crear un objeto completo del Pokémon base con todos sus datos
+        selectedBasePokemon = {
+            name: pokemon.basePokemonName,
+            id: pokemon.basePokemonId,
+            hp: pokemon.hp,
+            attack: pokemon.attack,
+            defense: pokemon.defense,
+            spAtk: pokemon.spAtk,
+            spDef: pokemon.spDef,
+            speed: pokemon.speed,
+            type: pokemon.type,
+            image: pokemon.image
+        };
+        
+        // Mostrar la información del Pokémon (incluyendo imagen)
+        displayExistingPokemonInfo(selectedBasePokemon);
         loadExistingAbilities(pokemon.basePokemonName);
         loadExistingMoves(pokemon.basePokemonName);
+        
+        // Establecer la habilidad actual en el select
+        if (pokemon.ability) {
+            document.getElementById('existingAbility').value = pokemon.ability;
+        }
     }
 }
 

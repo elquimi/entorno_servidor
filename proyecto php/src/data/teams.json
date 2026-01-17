@@ -25,9 +25,45 @@
                 ],
                 "type": "Fuego",
                 "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/814.png"
+            },
+            {
+                "id": "pokemon_696ae27902854",
+                "nickname": "susan",
+                "isCustom": true,
+                "basePokemonName": "Raboot",
+                "basePokemonId": 814,
+                "hp": 65,
+                "attack": 86,
+                "defense": 60,
+                "spAtk": 55,
+                "spDef": 60,
+                "speed": 94,
+                "ability": "guts",
+                "moves": [
+                    "golpe"
+                ],
+                "type": "Fuego",
+                "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/814.png"
+            },
+            {
+                "id": "pokemon_696b626b0cc5d",
+                "nickname": "susan",
+                "isCustom": true,
+                "basePokemonName": "",
+                "basePokemonId": null,
+                "hp": 100,
+                "attack": 100,
+                "defense": 100,
+                "spAtk": 100,
+                "spDef": 10,
+                "speed": 100,
+                "ability": "",
+                "moves": [],
+                "type": "Fuego",
+                "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/default.png"
             }
         ],
         "createdAt": "2026-01-16 10:18:27",
-        "updatedAt": "2026-01-16 12:03:21"
+        "updatedAt": "2026-01-17 04:36:56"
     }
 ]

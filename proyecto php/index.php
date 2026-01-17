@@ -72,6 +72,9 @@ if ($request === '/' || $request === '' || $request === '/index.php') {
     } elseif ($request === '/api/pokemon/stats') {
         $controller = new controllers\StatsController();
         $controller->calculateStats($_POST['stats'] ?? []);
+    } elseif ($request === '/api/stats/damage') {
+        $controller = new controllers\StatsController();
+        $controller->calculateDamageWithTypes();
     } elseif ($request === '/api/team/all') {
         $controller = new controllers\TeamController();
         $controller->getAll();

@@ -63,5 +63,37 @@ class StatsController
             echo json_encode(['error' => $e->getMessage()]);
         }
     }
+
+    /**
+     * Calcula daño entre dos Pokémon considerando tipos
+     */
+    public function calculateDamageWithTypes($attacker = null, $defender = null, $move = null, $level = null)
+    {
+        try {
+            // Obtener datos del POST o parámetros
+            $data = json_decode(file_get_contents('php://input'), true) ?? [];
+            
+            $attacker = $attacker ?? $data['attacker'] ?? [];
+            $defender = $defender ?? $data['defender'] ?? [];
+            $move = $move ?? $data['move'] ?? [];
+            $level = $level ?? $data['level'] ?? 50;
+
+            if (empty($attacker) || empty($defender) || empty($move)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Se requieren datos del atacante, defensor y movimiento']);
+                return;
+            }
+
+            $result = $this->statsService->calculateDamageWithType($attacker, $defender, $move, (int)$level);
+
+            echo json_encode([
+                'success' => !isset($result['error']),
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
 }
 ?>

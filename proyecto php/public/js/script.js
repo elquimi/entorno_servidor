@@ -1,9 +1,149 @@
 // Variables globales
 let currentPokemon1 = null;
 let currentPokemon2 = null;
+let allMoves = []; // Lista de todos los movimientos
 
 // Definir ruta base relativa (con espacio codificado como %20)
 const BASE_PATH = '/temp/proyecto%20php';
+
+// ==================== Tabla de Efectividad de Tipos ====================
+/**
+ * Matriz de efectividad de tipos
+ * Para cada tipo de DEFENSA, especifica qué tipos de ATAQUE son débiles/resistencias/inmunidades
+ */
+const TYPE_EFFECTIVENESS = {
+    "Normal": {
+        "weak_to": ["Lucha"],
+        "resists": [],
+        "immune_to": ["Fantasma"]
+    },
+    "Fuego": {
+        "weak_to": ["Agua", "Tierra", "Roca"],
+        "resists": ["Fuego", "Planta", "Hielo", "Bicho", "Acero", "Hada"],
+        "immune_to": []
+    },
+    "Agua": {
+        "weak_to": ["Eléctrico", "Planta"],
+        "resists": ["Fuego", "Agua", "Hielo", "Acero"],
+        "immune_to": []
+    },
+    "Eléctrico": {
+        "weak_to": ["Tierra"],
+        "resists": ["Eléctrico", "Volador", "Acero"],
+        "immune_to": []
+    },
+    "Planta": {
+        "weak_to": ["Fuego", "Hielo", "Veneno", "Volador", "Bicho"],
+        "resists": ["Tierra", "Agua", "Planta", "Eléctrico"],
+        "immune_to": []
+    },
+    "Hielo": {
+        "weak_to": ["Fuego", "Lucha", "Roca", "Acero"],
+        "resists": ["Hielo"],
+        "immune_to": []
+    },
+    "Lucha": {
+        "weak_to": ["Volador", "Psíquico", "Hada"],
+        "resists": ["Roca", "Bicho", "Siniestro"],
+        "immune_to": []
+    },
+    "Veneno": {
+        "weak_to": ["Tierra", "Psíquico"],
+        "resists": ["Lucha", "Veneno", "Bicho", "Hada"],
+        "immune_to": []
+    },
+    "Tierra": {
+        "weak_to": ["Agua", "Planta", "Hielo"],
+        "resists": ["Veneno", "Roca"],
+        "immune_to": ["Eléctrico"]
+    },
+    "Volador": {
+        "weak_to": ["Eléctrico", "Roca", "Hielo"],
+        "resists": ["Lucha", "Bicho", "Planta"],
+        "immune_to": []
+    },
+    "Psíquico": {
+        "weak_to": ["Bicho", "Fantasma", "Siniestro"],
+        "resists": ["Lucha", "Psíquico"],
+        "immune_to": []
+    },
+    "Bicho": {
+        "weak_to": ["Fuego", "Volador", "Roca"],
+        "resists": ["Lucha", "Tierra", "Planta"],
+        "immune_to": []
+    },
+    "Roca": {
+        "weak_to": ["Agua", "Planta", "Lucha", "Tierra", "Acero"],
+        "resists": ["Normal", "Volador", "Veneno", "Fuego"],
+        "immune_to": []
+    },
+    "Fantasma": {
+        "weak_to": ["Fantasma", "Siniestro"],
+        "resists": ["Veneno", "Bicho"],
+        "immune_to": ["Normal", "Lucha"]
+    },
+    "Dragón": {
+        "weak_to": ["Hielo", "Dragón", "Hada"],
+        "resists": ["Fuego", "Agua", "Planta", "Eléctrico"],
+        "immune_to": []
+    },
+    "Siniestro": {
+        "weak_to": ["Lucha", "Bicho", "Hada"],
+        "resists": ["Fantasma", "Siniestro"],
+        "immune_to": ["Psíquico"]
+    },
+    "Acero": {
+        "weak_to": ["Fuego", "Agua", "Tierra"],
+        "resists": ["Normal", "Volador", "Roca", "Bicho", "Planta", "Psíquico", "Hielo", "Dragón", "Hada", "Acero"],
+        "immune_to": ["Veneno"]
+    },
+    "Hada": {
+        "weak_to": ["Veneno", "Acero"],
+        "resists": ["Lucha", "Bicho", "Siniestro"],
+        "immune_to": []
+    }
+};
+
+/**
+ * Calcula el multiplicador de daño basado en la efectividad de tipos
+ * Si el defensor tiene múltiples tipos, los multiplicadores se acumulan
+ */
+function getTypeMultiplier(moveType, defenderTypes) {
+    if (!moveType || !defenderTypes) return 1;
+    
+    // Normalizar tipos del defensor (pueden venir como "Fuego, Tierra" o array)
+    let types = defenderTypes;
+    if (typeof defenderTypes === 'string') {
+        types = defenderTypes.split(',').map(t => t.trim()).filter(Boolean);
+    } else if (!Array.isArray(defenderTypes)) {
+        types = [defenderTypes];
+    }
+    
+    let multiplier = 1;
+    
+    // Para cada tipo del defensor
+    for (let defType of types) {
+        const effectiveness = TYPE_EFFECTIVENESS[defType];
+        
+        if (!effectiveness) continue;
+        
+        // Verificar inmunidad
+        if (effectiveness.immune_to && effectiveness.immune_to.includes(moveType)) {
+            return 0; // Si es inmune, el daño es 0
+        }
+        
+        // Verificar debilidad
+        if (effectiveness.weak_to && effectiveness.weak_to.includes(moveType)) {
+            multiplier *= 2; // x2 por cada tipo débil
+        }
+        // Verificar resistencia
+        else if (effectiveness.resists && effectiveness.resists.includes(moveType)) {
+            multiplier *= 0.5; // x0.5 por cada tipo que resiste
+        }
+    }
+    
+    return multiplier;
+}
 
 // Event listeners para tabs
 document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -654,6 +794,142 @@ function initAutocompletado() {
             overlay.addEventListener('click', closeSelectorModal);
         }
     }
+    
+    // Inicializar autocompletado de movimientos
+    loadMoves();
+    initMoveAutocomplete();
+}
+
+// ==================== Autocompletado de Movimientos ====================
+/**
+ * Carga la lista de movimientos desde el archivo JSON
+ */
+function loadMoves() {
+    fetch(`${BASE_PATH}/src/data/moves.json`)
+        .then(r => r.json())
+        .then(data => {
+            allMoves = data || [];
+            console.log('Movimientos cargados:', allMoves.length);
+        })
+        .catch(err => {
+            console.error('Error cargando movimientos:', err);
+            allMoves = [];
+        });
+}
+
+/**
+ * Inicializa el autocompletado para el input de movimientos
+ */
+function initMoveAutocomplete() {
+    const moveInput = document.getElementById('moveNameDmg');
+    if (!moveInput) return;
+    
+    // Crear contenedor de sugerencias si no existe
+    let moveSuggestions = document.getElementById('moveSuggestions');
+    if (!moveSuggestions) {
+        moveSuggestions = document.createElement('ul');
+        moveSuggestions.id = 'moveSuggestions';
+        moveSuggestions.className = 'autocomplete-list';
+        moveInput.parentElement.style.position = 'relative';
+        moveInput.parentElement.appendChild(moveSuggestions);
+    }
+    
+    // Event listener para input
+    moveInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        
+        if (query.length < 2) {
+            moveSuggestions.classList.remove('active');
+            return;
+        }
+        
+        // Filtrar movimientos
+        const matches = allMoves.filter(move => 
+            move.name.toLowerCase().includes(query)
+        ).slice(0, 10); // Máximo 10 sugerencias
+        
+        if (matches.length === 0) {
+            moveSuggestions.classList.remove('active');
+            return;
+        }
+        
+        // Renderizar sugerencias
+        moveSuggestions.innerHTML = matches.map(move => `
+            <li class="suggestion-item" data-move-name="${move.name}">
+                <strong>${move.name}</strong>
+                <span style="font-size: 0.85em; color: #666;">
+                    ${move.type} | ${move.category === 'physical' ? 'Físico' : 'Especial'} | Poder: ${move.power}
+                </span>
+            </li>
+        `).join('');
+        
+        moveSuggestions.classList.add('active');
+    });
+    
+    // Cerrar al perder foco
+    moveInput.addEventListener('blur', () => {
+        setTimeout(() => {
+            moveSuggestions.classList.remove('active');
+        }, 200);
+    });
+    
+    // Seleccionar movimiento al hacer clic
+    document.addEventListener('mousedown', (e) => {
+        const suggestionItem = e.target.closest('#moveSuggestions .suggestion-item');
+        if (suggestionItem) {
+            e.preventDefault();
+            const moveName = suggestionItem.getAttribute('data-move-name');
+            selectMove(moveName);
+        }
+    });
+}
+
+/**
+ * Mapeo de tipos en inglés a español
+ */
+const typeTranslations = {
+    'Normal': 'Normal',
+    'Fire': 'Fuego',
+    'Water': 'Agua',
+    'Electric': 'Eléctrico',
+    'Grass': 'Planta',
+    'Ice': 'Hielo',
+    'Fighting': 'Lucha',
+    'Poison': 'Veneno',
+    'Ground': 'Tierra',
+    'Flying': 'Volador',
+    'Psychic': 'Psíquico',
+    'Bug': 'Bicho',
+    'Rock': 'Roca',
+    'Ghost': 'Fantasma',
+    'Dragon': 'Dragón',
+    'Dark': 'Siniestro',
+    'Steel': 'Acero',
+    'Fairy': 'Hada'
+};
+
+/**
+ * Selecciona un movimiento y rellena los campos automáticamente
+ */
+function selectMove(moveName) {
+    const move = allMoves.find(m => m.name === moveName);
+    if (!move) return;
+    
+    // Rellenar campos
+    document.getElementById('moveNameDmg').value = move.name;
+    document.getElementById('movePowerDmg').value = move.power;
+    
+    // Traducir tipo del movimiento de inglés a español
+    const typeInSpanish = typeTranslations[move.type] || move.type;
+    document.getElementById('moveTypeDmg').value = typeInSpanish;
+    
+    document.getElementById('movePhysicalOrSpecial').value = move.category === 'physical' ? 'physical' : 'special';
+    
+    // Cerrar sugerencias
+    const moveSuggestions = document.getElementById('moveSuggestions');
+    if (moveSuggestions) {
+        moveSuggestions.classList.remove('active');
+    }
 }
 
 // ==================== Calculadora de Daño ====================
@@ -784,15 +1060,39 @@ function closeSelectorModal() {
 function selectPokemonForDamageCalc(pokemon) {
     const title = document.getElementById('selectorTitle').textContent;
     
-    if (title.includes('Atacante')) {
-        selectedAttacker = pokemon;
-        displayAttackerInfo(pokemon);
-    } else if (title.includes('Defensor')) {
-        selectedDefender = pokemon;
-        displayDefenderInfo(pokemon);
+    // Si solo tenemos id, name e image (de la lista), cargar datos completos
+    if (!pokemon.hp && !pokemon.attack) {
+        // Cargar datos completos del Pokémon
+        fetch(`${BASE_PATH}/api/pokemon/search?name=${encodeURIComponent(pokemon.name)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const fullPokemon = data.data;
+                    if (title.includes('Atacante')) {
+                        selectedAttacker = fullPokemon;
+                        displayAttackerInfo(fullPokemon);
+                    } else if (title.includes('Defensor')) {
+                        selectedDefender = fullPokemon;
+                        displayDefenderInfo(fullPokemon);
+                    }
+                    closeSelectorModal();
+                }
+            })
+            .catch(err => {
+                console.error('Error cargando Pokémon:', err);
+                alert('Error al cargar los datos del Pokémon');
+            });
+    } else {
+        // Ya tenemos todos los datos
+        if (title.includes('Atacante')) {
+            selectedAttacker = pokemon;
+            displayAttackerInfo(pokemon);
+        } else if (title.includes('Defensor')) {
+            selectedDefender = pokemon;
+            displayDefenderInfo(pokemon);
+        }
+        closeSelectorModal();
     }
-    
-    closeSelectorModal();
 }
 
 /**
@@ -800,12 +1100,17 @@ function selectPokemonForDamageCalc(pokemon) {
  */
 function displayAttackerInfo(pokemon) {
     const box = document.getElementById('attackerInfo');
+    const attack = pokemon.attack || 0;
+    const spAtk = pokemon.spAtk || 0;
     box.innerHTML = `
-        <div style="text-align: center;">
-            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}" style="max-width: 120px; max-height: 120px;">` : ''}
+        <div style="text-align: center; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
+            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}" style="max-width: 100px; max-height: 100px; margin-bottom: 8px;">` : ''}
             <div><strong>${pokemon.name || pokemon.nickname}</strong></div>
-            <div>AT: ${pokemon.attack || 100}</div>
-            <div>AT.ESP: ${pokemon.spAtk || 100}</div>
+            ${pokemon.type ? `<div style="font-size: 0.85em; color: #6b7280;">Tipo: ${pokemon.type}</div>` : ''}
+            <div style="margin-top: 8px; font-size: 0.9em;">
+                <div>⚔️ AT: <strong>${attack}</strong></div>
+                <div>✨ AT.ESP: <strong>${spAtk}</strong></div>
+            </div>
         </div>
     `;
 }
@@ -816,19 +1121,25 @@ function displayAttackerInfo(pokemon) {
 function displayDefenderInfo(pokemon) {
     const box = document.getElementById('defenderInfo');
     const types = (pokemon.type || '').split(',').map(t => t.trim()).filter(Boolean);
+    const defense = pokemon.defense || 0;
+    const spDef = pokemon.spDef || 0;
+    const hp = pokemon.hp || 0;
     box.innerHTML = `
-        <div style="text-align: center;">
-            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}" style="max-width: 120px; max-height: 120px;">` : ''}
+        <div style="text-align: center; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
+            ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}" style="max-width: 100px; max-height: 100px; margin-bottom: 8px;">` : ''}
             <div><strong>${pokemon.name || pokemon.nickname}</strong></div>
-            <div>DEF: ${pokemon.defense || 100}</div>
-            <div>DEF.ESP: ${pokemon.spDef || 100}</div>
-            <div>Tipos: ${types.join(', ') || 'Desconocido'}</div>
+            <div style="font-size: 0.85em; color: #6b7280;">Tipos: ${types.join(', ') || 'Desconocido'}</div>
+            <div style="margin-top: 8px; font-size: 0.9em;">
+                <div>❤️ HP: <strong style="color: #27ae60;">${hp}</strong></div>
+                <div>🛡️ DEF: <strong>${defense}</strong></div>
+                <div>✨ DEF.ESP: <strong>${spDef}</strong></div>
+            </div>
         </div>
     `;
 }
 
 /**
- * Calcula el daño entre dos Pokémon usando la fórmula oficial
+ * Calcula el daño entre dos Pokémon usando la fórmula oficial + efectividad de tipos
  */
 function calculateDamage() {
     if (!selectedAttacker || !selectedDefender) {
@@ -839,9 +1150,15 @@ function calculateDamage() {
     const moveName = document.getElementById('moveNameDmg').value || 'Movimiento';
     const movePower = parseInt(document.getElementById('movePowerDmg').value) || 0;
     const moveType = document.getElementById('moveTypeDmg').value || 'Normal';
+    const moveCategory = document.getElementById('movePhysicalOrSpecial').value || '';
     
     if (movePower <= 0) {
         alert('Ingresa un poder de movimiento válido (mayor a 0)');
+        return;
+    }
+    
+    if (!moveCategory) {
+        alert('Selecciona si el movimiento es Físico o Especial');
         return;
     }
     
@@ -853,10 +1170,8 @@ function calculateDamage() {
     const defenderSpDef = selectedDefender.spDef || 100;
     const defenderHP = selectedDefender.hp || 100;
     
-    // Determinar si es un movimiento físico o especial (simplificado)
-    // Movimientos físicos generalmente usan Attack/Defense
-    // Movimientos especiales usan Sp.Atk/Sp.Def
-    const isSpecialMove = ['Fuego', 'Agua', 'Eléctrico', 'Planta', 'Hielo', 'Psíquico', 'Dragón', 'Hada'].includes(moveType);
+    // Usar la opción seleccionada para determinar si es físico o especial
+    const isSpecialMove = moveCategory === 'special';
     
     const attack = isSpecialMove ? attackerSpAtk : attackerAtk;
     const defense = isSpecialMove ? defenderSpDef : defenderDef;
@@ -864,11 +1179,67 @@ function calculateDamage() {
     // Fórmula oficial de Pokémon (Gen III en adelante):
     // damage = ((((2 * level / 5 + 2) * power * attack / defense) / 50) + 2) * modifiers
     
-    const baseDamage = ((((2 * level / 5 + 2) * movePower * attack / defense) / 50) + 2);
+    let baseDamage = ((((2 * level / 5 + 2) * movePower * attack / defense) / 50) + 2);
+    
+    // ==================== CÁLCULO DE STAB (Same Type Attack Bonus) ====================
+    // Si el tipo del movimiento coincide con alguno de los tipos del atacante, +50% de daño
+    const attackerTypes = (selectedAttacker.type || '').split(',').map(t => t.trim()).filter(Boolean);
+    const hasSTAB = attackerTypes.includes(moveType);
+    
+    if (hasSTAB) {
+        baseDamage = baseDamage * 1.5;
+    }
+    
+    // ==================== CÁLCULO DE EFECTIVIDAD DE TIPOS ====================
+    const defenderTypes = selectedDefender.type || 'Normal';
+    const typeMultiplier = getTypeMultiplier(moveType, defenderTypes);
+    
+    // Si la efectividad es 0, es inmune
+    if (typeMultiplier === 0) {
+        const resultsDiv = document.getElementById('damageResults');
+        resultsDiv.innerHTML = `
+            <div class="comparison-container" style="max-width: 100%; padding: 20px; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-radius: 12px; margin-top: 20px; border: 2px solid #6b7280;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div style="text-align: center;">
+                        <strong>${selectedAttacker.name || 'Atacante'}</strong>
+                        <div style="font-size: 0.9em; color: #6b7280; margin-top: 4px;">
+                            Tipo: ${selectedAttacker.type || 'Desconocido'}
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong>${selectedDefender.name || 'Defensor'}</strong>
+                        <div style="font-size: 0.9em; color: #6b7280; margin-top: 4px;">
+                            Tipo: ${defenderTypes}
+                        </div>
+                        <div style="font-size: 0.9em; color: #6b7280; margin-top: 4px;">
+                            <strong>HP: ${defenderHP}</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 12px 0; text-align: center;">${moveName}</h3>
+                <p style="text-align: center; margin: 8px 0; color: #666;">
+                    Tipo: <strong>${moveType}</strong> | Poder: <strong>${movePower}</strong> | Tipo de movimiento: <strong>${isSpecialMove ? 'Especial' : 'Físico'}</strong>
+                </p>
+                <hr style="margin: 12px 0; border: none; border-top: 1px solid #e5e7eb;">
+                
+                <div style="background: #fee; border: 1px solid #f99; border-radius: 8px; padding: 12px; text-align: center;">
+                    <p style="margin: 0; font-size: 1.2em; color: #c33;"><strong>¡${selectedDefender.name || 'El Pokémon defensor'} es INMUNE!</strong></p>
+                    <p style="margin: 8px 0 0 0; font-size: 0.95em; color: #666;">
+                        El tipo ${moveType} no hace daño al tipo ${defenderTypes}
+                    </p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Aplicar multiplicador de tipo al daño base
+    const baseDamageWithType = baseDamage * typeMultiplier;
     
     // Aplicar variación (85% - 100%)
-    const minDamage = Math.floor(baseDamage * 0.85);
-    const maxDamage = Math.floor(baseDamage * 1.0);
+    const minDamage = Math.floor(baseDamageWithType * 0.85);
+    const maxDamage = Math.floor(baseDamageWithType * 1.0);
     
     // Calcular porcentaje de HP
     const percentMin = Math.round((minDamage / defenderHP) * 100);
@@ -877,40 +1248,106 @@ function calculateDamage() {
     // Calcular koces necesarios (ataques para derrotar)
     const koces = Math.ceil(defenderHP / maxDamage);
     
+    // Generar descripción de efectividad con estilo mejorado
+    let effectivenessHTML = '';
+    let effectivenessColor = '#666';
+    let effectivenessBackground = '#f9f9f9';
+    let effectivenessIcon = '';
+    
+    if (typeMultiplier >= 4) {
+        effectivenessHTML = `¡¡¡EXTREMADAMENTE EFECTIVO!!! (x${Math.round(typeMultiplier * 10) / 10})`;
+        effectivenessColor = '#fff';
+        effectivenessBackground = 'linear-gradient(135deg, #f39c12 0%, #e74c3c 100%)';
+        effectivenessIcon = '⚡⚡⚡';
+    } else if (typeMultiplier > 1) {
+        const mult = Math.round(typeMultiplier * 10) / 10;
+        effectivenessHTML = `¡MUY EFECTIVO! (x${mult})`;
+        effectivenessColor = '#fff';
+        effectivenessBackground = 'linear-gradient(135deg, #27ae60 0%, #229954 100%)';
+        effectivenessIcon = '⚡ ';
+    } else if (typeMultiplier < 1) {
+        const mult = Math.round(typeMultiplier * 10) / 10;
+        effectivenessHTML = `Poco efectivo (x${mult})`;
+        effectivenessColor = '#fff';
+        effectivenessBackground = 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)';
+        effectivenessIcon = '↓ ';
+    } else {
+        effectivenessHTML = `Efectividad normal (x1)`;
+        effectivenessColor = '#333';
+        effectivenessBackground = '#f9f9f9';
+    }
+    
     const resultsDiv = document.getElementById('damageResults');
     resultsDiv.innerHTML = `
-        <div class="comparison-container" style="max-width: 100%; padding: 20px; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-radius: 12px; margin-top: 20px; border: 1px solid #e5e7eb;">
+        <div class="comparison-container" style="max-width: 100%; padding: 20px; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-radius: 12px; margin-top: 20px; border: 2px solid #e5e7eb;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                <div style="text-align: center;">
-                    <strong>${selectedAttacker.name || 'Atacante'}</strong>
-                    <div style="font-size: 0.9em; color: #6b7280; margin-top: 4px;">
-                        ${isSpecialMove ? 'Ataque Esp:' : 'Ataque:'} ${attack}
+                <div style="text-align: center; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <strong style="font-size: 1.05em;">${selectedAttacker.name || 'Atacante'}</strong>
+                    <div style="font-size: 0.85em; color: #6b7280; margin-top: 4px;">
+                        Tipo: <strong>${attackerTypes.join(', ') || 'Desconocido'}</strong>
+                    </div>
+                    <div style="font-size: 0.85em; color: #6b7280; margin-top: 8px;">
+                        ${isSpecialMove ? 'Ataque Esp:' : 'Ataque:'} <strong style="font-size: 1.1em; color: #e74c3c;">${attack}</strong>
                     </div>
                 </div>
-                <div style="text-align: center;">
-                    <strong>${selectedDefender.name || 'Defensor'}</strong>
-                    <div style="font-size: 0.9em; color: #6b7280; margin-top: 4px;">
-                        ${isSpecialMove ? 'Defensa Esp:' : 'Defensa:'} ${defense}
+                <div style="text-align: center; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <strong style="font-size: 1.05em;">${selectedDefender.name || 'Defensor'}</strong>
+                    <div style="font-size: 0.85em; color: #6b7280; margin-top: 4px;">
+                        Tipo: <strong>${defenderTypes}</strong>
+                    </div>
+                    <div style="font-size: 0.85em; color: #6b7280; margin-top: 4px;">
+                        ${isSpecialMove ? 'Defensa Esp:' : 'Defensa:'} <strong style="font-size: 1.1em; color: #3498db;">${defense}</strong>
+                    </div>
+                    <div style="font-size: 0.85em; color: #6b7280; margin-top: 4px;">
+                        <strong style="font-size: 1.1em; color: #27ae60;">❤️ HP: ${defenderHP}</strong>
                     </div>
                 </div>
             </div>
             
-            <h3 style="margin: 12px 0; text-align: center;">${moveName}</h3>
-            <p style="text-align: center; margin: 8px 0; color: #666;">
-                Tipo: <strong>${moveType}</strong> | Poder: <strong>${movePower}</strong> | Tipo de movimiento: <strong>${isSpecialMove ? 'Especial' : 'Físico'}</strong>
-            </p>
-            <hr style="margin: 12px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 12px;">
+                <h3 style="margin: 0 0 8px 0; text-align: center; font-size: 1.1em;">${moveName}</h3>
+                <p style="text-align: center; margin: 8px 0; color: #666; font-size: 0.9em;">
+                    Tipo: <strong>${moveType}</strong> | Poder: <strong>${movePower}</strong> | Categoría: <strong>${isSpecialMove ? 'Especial' : 'Físico'}</strong>
+                </p>
+            </div>
             
-            <p style="text-align: center; margin: 12px 0;"><strong>${selectedDefender.name || 'Defensor'}</strong> recibe:</p>
-            <h2 style="color: #e74c3c; margin: 16px 0; text-align: center; font-size: 1.8em;">
-                ${minDamage} - ${maxDamage} de daño
-            </h2>
-            <p style="font-size: 1.1em; text-align: center;">
-                <strong style="color: #667eea;">${percentMin}% - ${percentMax}%</strong> de su HP total
-            </p>
-            <p style="color: #666; font-size: 0.95em; text-align: center; margin-top: 12px;">
-                <strong>HP: ${defenderHP}</strong> | <strong>Koces para K.O.: ${koces}</strong>
-            </p>
+            ${hasSTAB ? `
+            <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border: 2px solid #6c3483; border-radius: 8px; padding: 12px; text-align: center; margin-bottom: 12px;">
+                <p style="margin: 0; font-size: 1.1em; color: #fff; font-weight: bold;">
+                    ✨ STAB ACTIVO ✨ (x1.5 de daño)
+                </p>
+                <p style="margin: 4px 0 0 0; font-size: 0.85em; color: #f3e5f5;">
+                    El tipo del movimiento coincide con el tipo del atacante
+                </p>
+            </div>
+            ` : ''}
+            
+            <div style="background: ${effectivenessBackground}; border: 2px solid #333; border-radius: 8px; padding: 14px; text-align: center; margin-bottom: 12px;">
+                <p style="margin: 0; font-size: 1.2em; color: ${effectivenessColor}; font-weight: bold;">
+                    ${effectivenessIcon} ${effectivenessHTML}
+                </p>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #fee8e8 0%, #fef5f5 100%); border: 2px solid #e74c3c; border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 12px;">
+                <p style="margin: 0 0 12px 0; font-size: 0.9em; color: #666;"><strong>${selectedDefender.name || 'Defensor'}</strong> recibe:</p>
+                <h2 style="color: #e74c3c; margin: 0 0 12px 0; font-size: 2.2em;">
+                    ${minDamage} - ${maxDamage} de daño
+                </h2>
+                <p style="font-size: 1.15em; margin: 0;">
+                    <strong style="color: #e74c3c;">${percentMin}% - ${percentMax}%</strong> <span style="color: #666;">de su HP total</span>
+                </p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="text-align: center; padding: 8px;">
+                    <p style="margin: 0; font-size: 0.85em; color: #6b7280;">Ataques para K.O.</p>
+                    <p style="margin: 4px 0 0 0; font-size: 1.3em; font-weight: bold; color: #3498db;">${koces}</p>
+                </div>
+                <div style="text-align: center; padding: 8px;">
+                    <p style="margin: 0; font-size: 0.85em; color: #6b7280;">HP Defensor</p>
+                    <p style="margin: 4px 0 0 0; font-size: 1.3em; font-weight: bold; color: #27ae60;">${defenderHP}</p>
+                </div>
+            </div>
         </div>
     `;
 }

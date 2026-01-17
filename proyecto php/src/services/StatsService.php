@@ -7,6 +7,13 @@ namespace services;
  */
 class StatsService
 {
+    private $typeService;
+
+    public function __construct()
+    {
+        $this->typeService = new TypeService();
+    }
+
     /**
      * Calcula estadísticas personalizadas
      */
@@ -66,6 +73,119 @@ class StatsService
             'stats2_total' => $calc2['total'],
             'overall_winner' => $calc1['total'] > $calc2['total'] ? 'Stats 1' : ($calc2['total'] > $calc1['total'] ? 'Stats 2' : 'Empate'),
             'detailed_comparison' => $comparison
+        ];
+    }
+
+    /**
+     * Calcula daño entre dos Pokémon considerando tipos
+     * 
+     * @param array $attacker - Datos del Pokémon atacante
+     * @param array $defender - Datos del Pokémon defensor
+     * @param array $move - Datos del movimiento (name, power, type)
+     * @param int $level - Nivel del atacante (default 50)
+     * @return array - Información del daño calculado
+     */
+    public function calculateDamageWithType($attacker, $defender, $move, $level = 50)
+    {
+        // Validar datos mínimos
+        if (!$attacker || !$defender || !$move) {
+            return ['error' => 'Datos incompletos'];
+        }
+
+        $movePower = (int)($move['power'] ?? 0);
+        $moveType = trim($move['type'] ?? 'Normal');
+        $moveName = trim($move['name'] ?? 'Movimiento');
+
+        if ($movePower <= 0) {
+            return ['error' => 'El poder del movimiento debe ser mayor a 0'];
+        }
+
+        // Estadísticas del atacante
+        $attackerHP = (int)($attacker['hp'] ?? 100);
+        $attackerAtk = (int)($attacker['attack'] ?? 100);
+        $attackerSpAtk = (int)($attacker['spAtk'] ?? 100);
+
+        // Estadísticas del defensor
+        $defenderDef = (int)($defender['defense'] ?? 100);
+        $defenderSpDef = (int)($defender['spDef'] ?? 100);
+        $defenderHP = (int)($defender['hp'] ?? 100);
+        $defenderType = trim($defender['type'] ?? 'Normal');
+
+        // Determinar si es movimiento físico o especial
+        $specialTypes = ['Fuego', 'Agua', 'Eléctrico', 'Planta', 'Hielo', 'Psíquico', 'Dragón', 'Hada'];
+        $isSpecialMove = in_array($moveType, $specialTypes);
+
+        $attack = $isSpecialMove ? $attackerSpAtk : $attackerAtk;
+        $defense = $isSpecialMove ? $defenderSpDef : $defenderDef;
+
+        // Fórmula oficial: damage = ((((2 * level / 5 + 2) * power * attack / defense) / 50) + 2) * modifiers
+        $baseDamage = ((((2 * $level / 5 + 2) * $movePower * $attack / $defense) / 50) + 2);
+
+        // Obtener multiplicador de tipo
+        $typeMultiplier = $this->typeService->getDamageMultiplier($moveType, $defenderType);
+
+        // Si es inmune, daño es 0
+        if ($typeMultiplier === 0) {
+            return [
+                'success' => true,
+                'immune' => true,
+                'moveName' => $moveName,
+                'moveType' => $moveType,
+                'defenderName' => $defender['name'] ?? 'Desconocido',
+                'defenderType' => $defenderType,
+                'effectiveness' => 'Inmune',
+                'typeMultiplier' => 0,
+                'minDamage' => 0,
+                'maxDamage' => 0
+            ];
+        }
+
+        // Aplicar multiplicador de tipo
+        $damageWithType = $baseDamage * $typeMultiplier;
+
+        // Aplicar variación (85% - 100%)
+        $minDamage = (int)floor($damageWithType * 0.85);
+        $maxDamage = (int)floor($damageWithType * 1.0);
+
+        // Calcular porcentaje de HP
+        $percentMin = round(($minDamage / $defenderHP) * 100);
+        $percentMax = round(($maxDamage / $defenderHP) * 100);
+
+        // Calcular KOs necesarios
+        $kos = (int)ceil($defenderHP / $maxDamage);
+
+        // Generar descripción de efectividad
+        $effectiveness = 'Normal';
+        if ($typeMultiplier > 1) {
+            $effectiveness = 'Muy efectivo';
+        } elseif ($typeMultiplier < 1) {
+            $effectiveness = 'Poco efectivo';
+        }
+
+        return [
+            'success' => true,
+            'immune' => false,
+            'moveName' => $moveName,
+            'moveType' => $moveType,
+            'movePower' => $movePower,
+            'isSpecialMove' => $isSpecialMove,
+            'attackerName' => $attacker['name'] ?? 'Atacante',
+            'attackerStat' => $attack,
+            'attackerStatType' => $isSpecialMove ? 'Ataque Especial' : 'Ataque',
+            'defenderName' => $defender['name'] ?? 'Defensor',
+            'defenderType' => $defenderType,
+            'defenderStat' => $defense,
+            'defenderStatType' => $isSpecialMove ? 'Defensa Especial' : 'Defensa',
+            'defenderHP' => $defenderHP,
+            'typeMultiplier' => $typeMultiplier,
+            'effectiveness' => $effectiveness,
+            'minDamage' => $minDamage,
+            'maxDamage' => $maxDamage,
+            'percentMin' => $percentMin,
+            'percentMax' => $percentMax,
+            'kos' => $kos,
+            'baseDamage' => (int)$baseDamage,
+            'damageWithType' => (int)$damageWithType
         ];
     }
 }

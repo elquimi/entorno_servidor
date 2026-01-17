@@ -1,5 +1,5 @@
 let currentTeam = null;
-let allMoves = [];
+let allMovesForTeam = [];
 let allPokemon = []; // Todos los Pokémon disponibles para búsqueda
 let editingPokemonId = null; // ID del pokémon siendo editado
 let currentPokemonType = 'existing'; // existing o custom
@@ -34,7 +34,7 @@ function loadAvailableMoves() {
         .then(r => r.json())
         .then(data => {
             if (data.success && data.data) {
-                allMoves = data.data;
+                allMovesForTeam = data.data;
                 populateCustomMoveSelects();
             }
         })
@@ -45,9 +45,9 @@ function loadAvailableMoves() {
  * Poblar los 4 selects de movimientos personalizados con TODOS los movimientos
  */
 function populateCustomMoveSelects() {
-    if (!allMoves || allMoves.length === 0) return;
+    if (!allMovesForTeam || allMovesForTeam.length === 0) return;
     
-    const sortedMoves = [...allMoves].sort((a, b) => {
+    const sortedMoves = [...allMovesForTeam].sort((a, b) => {
         const aName = (typeof a === 'string' ? a : (a.name || a.original || '')).toLowerCase();
         const bName = (typeof b === 'string' ? b : (b.name || b.original || '')).toLowerCase();
         return aName.localeCompare(bName, 'es');
@@ -75,13 +75,13 @@ function populateCustomMoveSelects() {
  */
 function filterCustomMoveSelect(selectNum, query) {
     const select = document.getElementById(`customMove${selectNum}`);
-    if (!select || !allMoves) return;
+    if (!select || !allMovesForTeam) return;
     const q = (query || '').trim().toLowerCase();
     const currentValue = select.value;
     
-    let movesToShow = allMoves;
+    let movesToShow = allMovesForTeam;
     if (q) {
-        movesToShow = allMoves.filter(move => {
+        movesToShow = allMovesForTeam.filter(move => {
             const moveName = (typeof move === 'string' ? move : (move.name || move.original || '')).toLowerCase();
             return moveName.startsWith(q);
         });

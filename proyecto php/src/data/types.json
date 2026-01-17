@@ -1,0 +1,114 @@
+{
+  "types": [
+    "Normal",
+    "Fuego",
+    "Agua",
+    "Eléctrico",
+    "Planta",
+    "Hielo",
+    "Lucha",
+    "Veneno",
+    "Tierra",
+    "Volador",
+    "Psíquico",
+    "Bicho",
+    "Roca",
+    "Fantasma",
+    "Dragón",
+    "Siniestro",
+    "Acero",
+    "Hada"
+  ],
+  "effectiveness": {
+    "Normal": {
+      "weak_to": ["Lucha"],
+      "resists": [],
+      "immune_to": ["Fantasma"]
+    },
+    "Fuego": {
+      "weak_to": ["Agua", "Tierra", "Roca"],
+      "resists": ["Fuego", "Planta", "Hielo", "Bicho", "Acero", "Hada"],
+      "immune_to": []
+    },
+    "Agua": {
+      "weak_to": ["Eléctrico", "Planta"],
+      "resists": ["Fuego", "Agua", "Hielo", "Acero"],
+      "immune_to": []
+    },
+    "Eléctrico": {
+      "weak_to": ["Tierra"],
+      "resists": ["Eléctrico", "Volador", "Acero"],
+      "immune_to": []
+    },
+    "Planta": {
+      "weak_to": ["Fuego", "Hielo", "Veneno", "Volador", "Bicho"],
+      "resists": ["Tierra", "Agua", "Planta", "Eléctrico"],
+      "immune_to": []
+    },
+    "Hielo": {
+      "weak_to": ["Fuego", "Lucha", "Roca", "Acero"],
+      "resists": ["Hielo"],
+      "immune_to": []
+    },
+    "Lucha": {
+      "weak_to": ["Volador", "Psíquico", "Hada"],
+      "resists": ["Roca", "Bicho", "Siniestro"],
+      "immune_to": []
+    },
+    "Veneno": {
+      "weak_to": ["Tierra", "Psíquico"],
+      "resists": ["Lucha", "Veneno", "Bicho", "Hada"],
+      "immune_to": []
+    },
+    "Tierra": {
+      "weak_to": ["Agua", "Planta", "Hielo"],
+      "resists": ["Veneno", "Roca"],
+      "immune_to": ["Eléctrico"]
+    },
+    "Volador": {
+      "weak_to": ["Eléctrico", "Roca", "Hielo"],
+      "resists": ["Lucha", "Bicho", "Planta"],
+      "immune_to": []
+    },
+    "Psíquico": {
+      "weak_to": ["Bicho", "Fantasma", "Siniestro"],
+      "resists": ["Lucha", "Psíquico"],
+      "immune_to": []
+    },
+    "Bicho": {
+      "weak_to": ["Fuego", "Volador", "Roca"],
+      "resists": ["Lucha", "Tierra", "Planta"],
+      "immune_to": []
+    },
+    "Roca": {
+      "weak_to": ["Agua", "Planta", "Lucha", "Tierra", "Acero"],
+      "resists": ["Normal", "Volador", "Veneno", "Fuego"],
+      "immune_to": []
+    },
+    "Fantasma": {
+      "weak_to": ["Fantasma", "Siniestro"],
+      "resists": ["Veneno", "Bicho"],
+      "immune_to": ["Normal", "Lucha"]
+    },
+    "Dragón": {
+      "weak_to": ["Hielo", "Dragón", "Hada"],
+      "resists": ["Fuego", "Agua", "Planta", "Eléctrico"],
+      "immune_to": []
+    },
+    "Siniestro": {
+      "weak_to": ["Lucha", "Bicho", "Hada"],
+      "resists": ["Fantasma", "Siniestro"],
+      "immune_to": ["Psíquico"]
+    },
+    "Acero": {
+      "weak_to": ["Fuego", "Agua", "Tierra"],
+      "resists": ["Normal", "Volador", "Roca", "Bicho", "Planta", "Psíquico", "Hielo", "Dragón", "Hada", "Acero"],
+      "immune_to": ["Veneno"]
+    },
+    "Hada": {
+      "weak_to": ["Veneno", "Acero"],
+      "resists": ["Lucha", "Bicho", "Siniestro"],
+      "immune_to": []
+    }
+  }
+}

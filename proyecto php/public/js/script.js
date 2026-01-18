@@ -2,6 +2,7 @@
 let currentPokemon1 = null;
 let currentPokemon2 = null;
 let allMoves = []; // Lista de todos los movimientos
+let allAbilities = []; // Lista de todas las habilidades
 
 // Definir ruta base relativa (con espacio codificado como %20)
 const BASE_PATH = '/temp/proyecto%20php';
@@ -932,6 +933,106 @@ function selectMove(moveName) {
     }
 }
 
+// ==================== Autocompletado de Habilidades ====================
+/**
+ * Carga la lista de habilidades desde el archivo JSON
+ */
+function loadAbilities() {
+    fetch(`${BASE_PATH}/src/data/abilities.json`)
+        .then(r => r.json())
+        .then(data => {
+            allAbilities = data || [];
+            console.log('Habilidades cargadas:', allAbilities.length);
+        })
+        .catch(err => {
+            console.error('Error cargando habilidades:', err);
+            allAbilities = [];
+        });
+}
+
+/**
+ * Inicializa el autocompletado para un input de habilidad
+ */
+function initAbilityAutocomplete(inputId, suggestionsId) {
+    const abilityInput = document.getElementById(inputId);
+    if (!abilityInput) return;
+    
+    // Crear contenedor de sugerencias
+    let abilitySuggestions = document.getElementById(suggestionsId);
+    if (!abilitySuggestions) {
+        abilitySuggestions = document.createElement('div');
+        abilitySuggestions.id = suggestionsId;
+        abilitySuggestions.className = 'ability-dropdown';
+        abilityInput.parentElement.appendChild(abilitySuggestions);
+    }
+    
+    // Filtrar y mostrar habilidades según lo escrito
+    abilityInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        // Si no hay texto, ocultar desplegable
+        if (!query) {
+            abilitySuggestions.style.display = 'none';
+            return;
+        }
+        
+        // Filtrar solo las coincidencias
+        const matches = allAbilities.filter(ability => 
+            ability.name.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        // Si no hay coincidencias, ocultar
+        if (matches.length === 0) {
+            abilitySuggestions.style.display = 'none';
+            return;
+        }
+        
+        // Mostrar coincidencias en recuadros
+        abilitySuggestions.innerHTML = matches.map(ability => `
+            <div class="ability-item" data-ability="${ability.name}">
+                <strong>${ability.name}</strong>
+                ${ability.description ? `<div class="ability-desc">${ability.description}</div>` : ''}
+            </div>
+        `).join('');
+        
+        abilitySuggestions.style.display = 'block';
+    });
+    
+    // Al hacer clic en una habilidad
+    abilitySuggestions.addEventListener('click', (e) => {
+        const abilityItem = e.target.closest('.ability-item');
+        if (abilityItem) {
+            const abilityName = abilityItem.getAttribute('data-ability');
+            abilityInput.value = abilityName;
+            abilitySuggestions.style.display = 'none'; // Cerrar automáticamente
+        }
+    });
+    
+    // Cerrar al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (!abilityInput.contains(e.target) && !abilitySuggestions.contains(e.target)) {
+            abilitySuggestions.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * Selecciona una habilidad y rellena el campo
+ */
+function selectAbility(abilityName, inputId) {
+    const input = document.getElementById(inputId);
+    if (input) {
+        input.value = abilityName;
+    }
+}
+
+// Inicializar autocompletado de habilidades cuando el documento esté listo
+document.addEventListener('DOMContentLoaded', () => {
+    loadAbilities();
+    initAbilityAutocomplete('attackerAbility', 'attackerAbilitySuggestions');
+    initAbilityAutocomplete('defenderAbility', 'defenderAbilitySuggestions');
+});
+
 // ==================== Calculadora de Daño ====================
 let selectedAttacker = null;
 let selectedDefender = null;
@@ -1121,9 +1222,17 @@ function displayAttackerInfo(pokemon) {
 function displayDefenderInfo(pokemon) {
     const box = document.getElementById('defenderInfo');
     const types = (pokemon.type || '').split(',').map(t => t.trim()).filter(Boolean);
-    const defense = pokemon.defense || 0;
-    const spDef = pokemon.spDef || 0;
-    const hp = pokemon.hp || 0;
+    // Calcular estadísticas según nivel del defensor (sin modificaciones)
+    const levelInput = document.getElementById('defenderLevel');
+    const level = levelInput ? Math.max(1, Math.min(100, parseInt(levelInput.value) || 50)) : 50;
+
+    const baseHp = pokemon.hp || 0;
+    const baseDef = pokemon.defense || 0;
+    const baseSpDef = pokemon.spDef || 0;
+
+    const hp = computeStatAtLevel(baseHp, level, true);
+    const defense = computeStatAtLevel(baseDef, level, false);
+    const spDef = computeStatAtLevel(baseSpDef, level, false);
     box.innerHTML = `
         <div style="text-align: center; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
             ${pokemon.image ? `<img src="${pokemon.image}" alt="${pokemon.name}" style="max-width: 100px; max-height: 100px; margin-bottom: 8px;">` : ''}
@@ -1139,6 +1248,23 @@ function displayDefenderInfo(pokemon) {
 }
 
 /**
+ * Calcula una estadística a un nivel dado (sin EVs, IV 31, naturaleza neutra)
+ * Fórmulas oficiales:
+ *  - HP: floor(((2 * Base + IV + floor(EV/4)) * Nivel)/100) + Nivel + 10
+ *  - Otras: floor((floor(((2 * Base + IV + floor(EV/4)) * Nivel)/100) + 5) * Naturaleza)
+ */
+function computeStatAtLevel(base, level, isHP = false) {
+    const IV = 31; // Valor por defecto
+    const EV = 0;  // Sin modificaciones
+    const nature = 1.0; // Naturaleza neutral
+    const pre = Math.floor(((2 * base + IV + Math.floor(EV / 4)) * level) / 100);
+    if (isHP) {
+        return Math.floor(pre + level + 10);
+    }
+    return Math.floor(Math.floor(pre + 5) * nature);
+}
+
+/**
  * Calcula el daño entre dos Pokémon usando la fórmula oficial + efectividad de tipos
  */
 function calculateDamage() {
@@ -1151,6 +1277,8 @@ function calculateDamage() {
     const movePower = parseInt(document.getElementById('movePowerDmg').value) || 0;
     const moveType = document.getElementById('moveTypeDmg').value || 'Normal';
     const moveCategory = document.getElementById('movePhysicalOrSpecial').value || '';
+    const attackerAbility = document.getElementById('attackerAbility')?.value.trim() || null;
+    const defenderAbility = document.getElementById('defenderAbility')?.value.trim() || null;
     
     if (movePower <= 0) {
         alert('Ingresa un poder de movimiento válido (mayor a 0)');
@@ -1162,37 +1290,175 @@ function calculateDamage() {
         return;
     }
     
-    const level = 50; // Nivel estándar para cálculos
+    const level = 50; // Nivel del atacante (estándar)
     const attackerHP = selectedAttacker.hp || 100;
     const attackerAtk = selectedAttacker.attack || 100;
     const attackerSpAtk = selectedAttacker.spAtk || 100;
-    const defenderDef = selectedDefender.defense || 100;
-    const defenderSpDef = selectedDefender.spDef || 100;
-    const defenderHP = selectedDefender.hp || 100;
+    // Nivel del defensor para calcular sus estadísticas reales sin modificaciones
+    const defenderLevelInput = document.getElementById('defenderLevel');
+    const defenderLevel = defenderLevelInput ? Math.max(1, Math.min(100, parseInt(defenderLevelInput.value) || 50)) : 50;
+    const defenderHP = computeStatAtLevel(selectedDefender.hp || 100, defenderLevel, true);
+    const defenderDef = computeStatAtLevel(selectedDefender.defense || 100, defenderLevel, false);
+    const defenderSpDef = computeStatAtLevel(selectedDefender.spDef || 100, defenderLevel, false);
     
     // Usar la opción seleccionada para determinar si es físico o especial
     const isSpecialMove = moveCategory === 'special';
     
-    const attack = isSpecialMove ? attackerSpAtk : attackerAtk;
+    let attack = isSpecialMove ? attackerSpAtk : attackerAtk;
     const defense = isSpecialMove ? defenderSpDef : defenderDef;
+    
+    // ==================== APLICAR HABILIDADES DEL ATACANTE ====================
+    let attackerAbilityMultiplier = 1.0;
+    
+    if (attackerAbility && attackerAbility !== 'Ninguna') {
+        const ability = allAbilities.find(a => a.name === attackerAbility);
+        if (ability) {
+            // Huge Power, Pure Power - duplican ataque físico
+            if ((ability.name === 'Huge Power' || ability.name === 'Pure Power') && !isSpecialMove) {
+                attackerAbilityMultiplier = 2.0;
+            }
+            // Hustle - aumenta 50% ataque físico
+            else if (ability.name === 'Hustle' && !isSpecialMove) {
+                attackerAbilityMultiplier = 1.5;
+            }
+            // Solar Power - aumenta 50% ataque especial bajo sol
+            else if (ability.name === 'Solar Power' && isSpecialMove) {
+                attackerAbilityMultiplier = 1.5;
+            }
+            // Guts - aumenta 50% ataque físico con estado
+            else if (ability.name === 'Guts' && !isSpecialMove) {
+                attackerAbilityMultiplier = 1.5;
+            }
+        }
+    }
+    
+    attack = Math.floor(attack * attackerAbilityMultiplier);
     
     // Fórmula oficial de Pokémon (Gen III en adelante):
     // damage = ((((2 * level / 5 + 2) * power * attack / defense) / 50) + 2) * modifiers
     
-    let baseDamage = ((((2 * level / 5 + 2) * movePower * attack / defense) / 50) + 2);
+    // Cálculo base con redondeos (floors) en cada paso como en juegos oficiales
+    const levelFactor = Math.floor((2 * level) / 5) + 2;
+    const baseStep1 = Math.floor((levelFactor * movePower * attack) / defense);
+    let baseDamage = Math.floor(baseStep1 / 50) + 2;
     
     // ==================== CÁLCULO DE STAB (Same Type Attack Bonus) ====================
     // Si el tipo del movimiento coincide con alguno de los tipos del atacante, +50% de daño
     const attackerTypes = (selectedAttacker.type || '').split(',').map(t => t.trim()).filter(Boolean);
-    const hasSTAB = attackerTypes.includes(moveType);
+    let hasSTAB = attackerTypes.includes(moveType);
+    
+    // Verificar habilidades que afectan STAB
+    let stabMultiplier = 1.5;
+    if (hasSTAB && attackerAbility === 'Adaptability') {
+        stabMultiplier = 2.0; // Adaptability aumenta STAB a 2x
+    }
     
     if (hasSTAB) {
-        baseDamage = baseDamage * 1.5;
+        baseDamage = Math.floor(baseDamage * stabMultiplier);
+    }
+    
+    // Aplicar habilidades que aumentan potencia de movimientos
+    if (attackerAbility && attackerAbility !== 'Ninguna') {
+        const ability = allAbilities.find(a => a.name === attackerAbility);
+        if (ability) {
+            // Technician - aumenta 50% movimientos con poder <= 60
+            if (ability.name === 'Technician' && movePower <= 60) {
+                baseDamage = baseDamage * 1.5;
+            }
+            // Tough Claws - aumenta 30% movimientos de contacto (físicos)
+            else if (ability.name === 'Tough Claws' && !isSpecialMove) {
+                baseDamage = baseDamage * 1.3;
+            }
+            // Sheer Force - aumenta 30% poder
+            else if (ability.name === 'Sheer Force') {
+                baseDamage = baseDamage * 1.3;
+            }
+            // Analytic - aumenta 30% si ataca último
+            else if (ability.name === 'Analytic') {
+                baseDamage = baseDamage * 1.3;
+            }
+            // Reckless - aumenta 20% movimientos con retroceso
+            else if (ability.name === 'Reckless') {
+                baseDamage = baseDamage * 1.2;
+            }
+            // Parental Bond - aumenta 25% (simula segundo golpe)
+            else if (ability.name === 'Parental Bond') {
+                baseDamage = baseDamage * 1.25;
+            }
+            // Iron Fist, Strong Jaw, Mega Launcher - aumentan 20-50% ciertos movimientos
+            else if (ability.name === 'Iron Fist' && !isSpecialMove) {
+                baseDamage = baseDamage * 1.2;
+            }
+            else if (ability.name === 'Strong Jaw') {
+                baseDamage = baseDamage * 1.5;
+            }
+            else if (ability.name === 'Mega Launcher') {
+                baseDamage = baseDamage * 1.5;
+            }
+        }
     }
     
     // ==================== CÁLCULO DE EFECTIVIDAD DE TIPOS ====================
     const defenderTypes = selectedDefender.type || 'Normal';
-    const typeMultiplier = getTypeMultiplier(moveType, defenderTypes);
+    let typeMultiplier = getTypeMultiplier(moveType, defenderTypes);
+    
+    // ==================== APLICAR HABILIDADES DEL DEFENSOR ====================
+    let defenderAbilityMultiplier = 1.0;
+    
+    if (defenderAbility && defenderAbility !== 'Ninguna') {
+        const ability = allAbilities.find(a => a.name === defenderAbility);
+        if (ability) {
+            // Levitate - inmune a Tierra
+            if (ability.name === 'Levitate' && moveType === 'Tierra') {
+                typeMultiplier = 0;
+            }
+            // Water Absorb, Storm Drain - inmune a Agua
+            else if ((ability.name === 'Water Absorb' || ability.name === 'Storm Drain') && moveType === 'Agua') {
+                typeMultiplier = 0;
+            }
+            // Volt Absorb, Lightning Rod - inmune a Eléctrico
+            else if ((ability.name === 'Volt Absorb' || ability.name === 'Lightning Rod') && moveType === 'Eléctrico') {
+                typeMultiplier = 0;
+            }
+            // Flash Fire - inmune a Fuego
+            else if (ability.name === 'Flash Fire' && moveType === 'Fuego') {
+                typeMultiplier = 0;
+            }
+            // Sap Sipper - inmune a Planta
+            else if (ability.name === 'Sap Sipper' && moveType === 'Planta') {
+                typeMultiplier = 0;
+            }
+            // Thick Fat - reduce 50% daño de Fuego e Hielo
+            else if (ability.name === 'Thick Fat' && (moveType === 'Fuego' || moveType === 'Hielo')) {
+                defenderAbilityMultiplier = 0.5;
+            }
+            // Fur Coat, Pelaje Recio - reduce 50% daño físico
+            else if ((ability.name === 'Fur Coat' || ability.name === 'Pelaje Recio') && !isSpecialMove) {
+                defenderAbilityMultiplier = 0.5;
+            }
+            // Filter, Solid Rock - reducen 25% daño supereficaz
+            else if ((ability.name === 'Filter' || ability.name === 'Solid Rock') && typeMultiplier > 1) {
+                defenderAbilityMultiplier = 0.75;
+            }
+            // Multiscale - reduce 50% daño con HP completo
+            else if (ability.name === 'Multiscale') {
+                defenderAbilityMultiplier = 0.5;
+            }
+            // Fluffy - reduce 50% contacto (físico), duplica Fuego
+            else if (ability.name === 'Fluffy') {
+                if (!isSpecialMove) {
+                    defenderAbilityMultiplier = 0.5;
+                }
+                if (moveType === 'Fuego') {
+                    defenderAbilityMultiplier = 2.0;
+                }
+            }
+            // Tinted Lens - ataques poco efectivos hacen daño normal
+            else if (ability.name === 'Tinted Lens' && typeMultiplier < 1 && typeMultiplier > 0) {
+                defenderAbilityMultiplier = 2.0;
+            }
+        }
+    }
     
     // Si la efectividad es 0, es inmune
     if (typeMultiplier === 0) {
@@ -1235,15 +1501,18 @@ function calculateDamage() {
     }
     
     // Aplicar multiplicador de tipo al daño base
-    const baseDamageWithType = baseDamage * typeMultiplier;
+    let baseDamageWithType = Math.floor(baseDamage * typeMultiplier);
+    
+    // Aplicar multiplicador de habilidad del defensor
+    baseDamageWithType = Math.floor(baseDamageWithType * defenderAbilityMultiplier);
     
     // Aplicar variación (85% - 100%)
     const minDamage = Math.floor(baseDamageWithType * 0.85);
-    const maxDamage = Math.floor(baseDamageWithType * 1.0);
+    const maxDamage = baseDamageWithType;
     
     // Calcular porcentaje de HP
-    const percentMin = Math.round((minDamage / defenderHP) * 100);
-    const percentMax = Math.round((maxDamage / defenderHP) * 100);
+    const percentMin = Math.min(100, Math.round((minDamage / defenderHP) * 100));
+    const percentMax = Math.min(100, Math.round((maxDamage / defenderHP) * 100));
     
     // Calcular koces necesarios (ataques para derrotar)
     const koces = Math.ceil(defenderHP / maxDamage);
@@ -1283,6 +1552,7 @@ function calculateDamage() {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                 <div style="text-align: center; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
                     <strong style="font-size: 1.05em;">${selectedAttacker.name || 'Atacante'}</strong>
+                    ${attackerAbility && attackerAbility !== 'Ninguna' ? `<div style="font-size: 0.75em; color: #9b59b6; margin-top: 2px;"><strong>⭐ ${attackerAbility}</strong></div>` : ''}
                     <div style="font-size: 0.85em; color: #6b7280; margin-top: 4px;">
                         Tipo: <strong>${attackerTypes.join(', ') || 'Desconocido'}</strong>
                     </div>
@@ -1292,6 +1562,7 @@ function calculateDamage() {
                 </div>
                 <div style="text-align: center; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
                     <strong style="font-size: 1.05em;">${selectedDefender.name || 'Defensor'}</strong>
+                    ${defenderAbility && defenderAbility !== 'Ninguna' ? `<div style="font-size: 0.75em; color: #9b59b6; margin-top: 2px;"><strong>⭐ ${defenderAbility}</strong></div>` : ''}
                     <div style="font-size: 0.85em; color: #6b7280; margin-top: 4px;">
                         Tipo: <strong>${defenderTypes}</strong>
                     </div>
@@ -1314,10 +1585,10 @@ function calculateDamage() {
             ${hasSTAB ? `
             <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border: 2px solid #6c3483; border-radius: 8px; padding: 12px; text-align: center; margin-bottom: 12px;">
                 <p style="margin: 0; font-size: 1.1em; color: #fff; font-weight: bold;">
-                    ✨ STAB ACTIVO ✨ (x1.5 de daño)
+                    ✨ STAB ACTIVO ✨ (x${stabMultiplier} de daño)
                 </p>
                 <p style="margin: 4px 0 0 0; font-size: 0.85em; color: #f3e5f5;">
-                    El tipo del movimiento coincide con el tipo del atacante
+                    El tipo del movimiento coincide con el tipo del atacante${stabMultiplier === 2.0 ? ' (Adaptability)' : ''}
                 </p>
             </div>
             ` : ''}
@@ -1327,6 +1598,14 @@ function calculateDamage() {
                     ${effectivenessIcon} ${effectivenessHTML}
                 </p>
             </div>
+            
+            ${attackerAbilityMultiplier !== 1.0 || defenderAbilityMultiplier !== 1.0 ? `
+            <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border: 2px solid #ff9800; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                <p style="margin: 0 0 8px 0; font-size: 1em; color: #e65100; font-weight: bold;">⚡ Habilidades Activas:</p>
+                ${attackerAbilityMultiplier !== 1.0 ? `<p style="margin: 4px 0; font-size: 0.9em; color: #666;">🔸 ${attackerAbility} del atacante (x${attackerAbilityMultiplier})</p>` : ''}
+                ${defenderAbilityMultiplier !== 1.0 && defenderAbilityMultiplier !== 0 ? `<p style="margin: 4px 0; font-size: 0.9em; color: #666;">🔸 ${defenderAbility} del defensor (x${defenderAbilityMultiplier})</p>` : ''}
+            </div>
+            ` : ''}
             
             <div style="background: linear-gradient(135deg, #fee8e8 0%, #fef5f5 100%); border: 2px solid #e74c3c; border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 12px;">
                 <p style="margin: 0 0 12px 0; font-size: 0.9em; color: #666;"><strong>${selectedDefender.name || 'Defensor'}</strong> recibe:</p>

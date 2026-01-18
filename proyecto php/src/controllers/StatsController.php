@@ -77,6 +77,8 @@ class StatsController
             $defender = $defender ?? $data['defender'] ?? [];
             $move = $move ?? $data['move'] ?? [];
             $level = $level ?? $data['level'] ?? 50;
+            $attackerAbility = $data['attackerAbility'] ?? null;
+            $defenderAbility = $data['defenderAbility'] ?? null;
 
             if (empty($attacker) || empty($defender) || empty($move)) {
                 http_response_code(400);
@@ -84,7 +86,14 @@ class StatsController
                 return;
             }
 
-            $result = $this->statsService->calculateDamageWithType($attacker, $defender, $move, (int)$level);
+            $result = $this->statsService->calculateDamageWithType(
+                $attacker, 
+                $defender, 
+                $move, 
+                (int)$level,
+                $attackerAbility,
+                $defenderAbility
+            );
 
             echo json_encode([
                 'success' => !isset($result['error']),

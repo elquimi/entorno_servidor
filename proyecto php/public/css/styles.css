@@ -834,19 +834,50 @@ body {
     right: 0;
     list-style: none;
     background: white;
-    border: 1px solid #ddd;
+    border: 2px solid #9b59b6;
     border-top: none;
-    max-height: 300px;
+    max-height: 350px;
     overflow-y: auto;
     z-index: 1001;
     display: none;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-radius: 0 0 4px 4px;
-    margin-top: -1px;
+    box-shadow: 0 8px 16px rgba(155, 89, 182, 0.2);
+    border-radius: 0 0 10px 10px;
+    margin-top: 2px;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .autocomplete-list.active {
     display: block;
+}
+
+/* Scrollbar personalizado para las sugerencias */
+.autocomplete-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.autocomplete-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 0 0 10px 0;
+}
+
+.autocomplete-list::-webkit-scrollbar-thumb {
+    background: #9b59b6;
+    border-radius: 10px;
+}
+
+.autocomplete-list::-webkit-scrollbar-thumb:hover {
+    background: #8e44ad;
 }
 
 .autocomplete-list li {
@@ -1354,6 +1385,88 @@ body {
     border-radius: 8px;
     margin-top: 15px;
     min-height: 100px;
+}
+
+.ability-selector {
+    margin-top: 15px;
+    position: relative;
+}
+
+.ability-selector label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.95em;
+}
+
+.ability-selector input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 0.95em;
+    transition: all 0.3s;
+    background: white;
+}
+
+.ability-selector input:focus {
+    outline: none;
+    border-color: #9b59b6;
+    box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.1);
+}
+
+.ability-selector input::placeholder {
+    color: #bdc3c7;
+    font-style: italic;
+}
+
+/* Desplegable de habilidades */
+.ability-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #9b59b6;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+    margin-top: 2px;
+}
+
+.ability-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.2s;
+}
+
+.ability-item:last-child {
+    border-bottom: none;
+}
+
+.ability-item:hover {
+    background: #f8f4fc;
+    border-left: 3px solid #9b59b6;
+    padding-left: 12px;
+}
+
+.ability-item strong {
+    color: #2c3e50;
+    font-size: 0.95em;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.ability-item .ability-desc {
+    font-size: 0.8em;
+    color: #7f8c8d;
+    line-height: 1.3;
 }
 
 .move-selector {

@@ -1,0 +1,336 @@
+[
+    {
+        "name": "Ninguna",
+        "effect": "none"
+    },
+    {
+        "name": "Adaptability",
+        "effect": "stab_boost",
+        "description": "STAB aumenta de 1.5x a 2x"
+    },
+    {
+        "name": "Aerilate",
+        "effect": "type_conversion",
+        "converts": "Normal",
+        "to": "Flying",
+        "boost": 1.2,
+        "description": "Movimientos Normal se vuelven Volador y aumentan 20%"
+    },
+    {
+        "name": "Blaze",
+        "effect": "type_boost_low_hp",
+        "type": "Fire",
+        "multiplier": 1.5,
+        "description": "Aumenta 50% daño de movimientos Fuego con HP bajo"
+    },
+    {
+        "name": "Torrent",
+        "effect": "type_boost_low_hp",
+        "type": "Water",
+        "multiplier": 1.5,
+        "description": "Aumenta 50% daño de movimientos Agua con HP bajo"
+    },
+    {
+        "name": "Overgrow",
+        "effect": "type_boost_low_hp",
+        "type": "Grass",
+        "multiplier": 1.5,
+        "description": "Aumenta 50% daño de movimientos Planta con HP bajo"
+    },
+    {
+        "name": "Swarm",
+        "effect": "type_boost_low_hp",
+        "type": "Bug",
+        "multiplier": 1.5,
+        "description": "Aumenta 50% daño de movimientos Bicho con HP bajo"
+    },
+    {
+        "name": "Huge Power",
+        "effect": "stat_boost",
+        "stat": "attack",
+        "multiplier": 2.0,
+        "description": "Duplica el ataque físico"
+    },
+    {
+        "name": "Pure Power",
+        "effect": "stat_boost",
+        "stat": "attack",
+        "multiplier": 2.0,
+        "description": "Duplica el ataque físico"
+    },
+    {
+        "name": "Guts",
+        "effect": "stat_boost_with_status",
+        "stat": "attack",
+        "multiplier": 1.5,
+        "description": "Aumenta 50% ataque físico con estado alterado"
+    },
+    {
+        "name": "Hustle",
+        "effect": "stat_boost",
+        "stat": "attack",
+        "multiplier": 1.5,
+        "description": "Aumenta 50% ataque físico pero reduce precisión"
+    },
+    {
+        "name": "Thick Fat",
+        "effect": "type_resistance",
+        "types": ["Fire", "Ice"],
+        "multiplier": 0.5,
+        "description": "Reduce 50% daño recibido de Fuego y Hielo"
+    },
+    {
+        "name": "Fluffy",
+        "effect": "mixed_resistance",
+        "resists": {
+            "contact": 0.5,
+            "Fire": 2.0
+        },
+        "description": "Reduce 50% daño de contacto pero duplica daño de Fuego"
+    },
+    {
+        "name": "Multiscale",
+        "effect": "hp_based_resistance",
+        "condition": "full_hp",
+        "multiplier": 0.5,
+        "description": "Reduce 50% daño recibido con HP completo"
+    },
+    {
+        "name": "Filter",
+        "effect": "effectiveness_reduction",
+        "multiplier": 0.75,
+        "description": "Reduce 25% daño de ataques supereficaces"
+    },
+    {
+        "name": "Solid Rock",
+        "effect": "effectiveness_reduction",
+        "multiplier": 0.75,
+        "description": "Reduce 25% daño de ataques supereficaces"
+    },
+    {
+        "name": "Levitate",
+        "effect": "type_immunity",
+        "type": "Ground",
+        "description": "Inmune a movimientos Tierra"
+    },
+    {
+        "name": "Water Absorb",
+        "effect": "type_immunity",
+        "type": "Water",
+        "heal": true,
+        "description": "Inmune a Agua y recupera HP"
+    },
+    {
+        "name": "Volt Absorb",
+        "effect": "type_immunity",
+        "type": "Electric",
+        "heal": true,
+        "description": "Inmune a Eléctrico y recupera HP"
+    },
+    {
+        "name": "Flash Fire",
+        "effect": "type_immunity_boost",
+        "type": "Fire",
+        "boost": 1.5,
+        "description": "Inmune a Fuego y aumenta 50% daño de movimientos Fuego"
+    },
+    {
+        "name": "Iron Fist",
+        "effect": "move_category_boost",
+        "category": "punch",
+        "multiplier": 1.2,
+        "description": "Aumenta 20% daño de movimientos de puño"
+    },
+    {
+        "name": "Sheer Force",
+        "effect": "power_boost_no_effects",
+        "multiplier": 1.3,
+        "description": "Aumenta 30% poder pero elimina efectos secundarios"
+    },
+    {
+        "name": "Technician",
+        "effect": "low_power_boost",
+        "threshold": 60,
+        "multiplier": 1.5,
+        "description": "Aumenta 50% movimientos con poder ≤60"
+    },
+    {
+        "name": "Tough Claws",
+        "effect": "contact_boost",
+        "multiplier": 1.3,
+        "description": "Aumenta 30% daño de movimientos de contacto"
+    },
+    {
+        "name": "Strong Jaw",
+        "effect": "move_category_boost",
+        "category": "bite",
+        "multiplier": 1.5,
+        "description": "Aumenta 50% daño de movimientos de mordida"
+    },
+    {
+        "name": "Mega Launcher",
+        "effect": "move_category_boost",
+        "category": "pulse",
+        "multiplier": 1.5,
+        "description": "Aumenta 50% daño de movimientos de pulso y aura"
+    },
+    {
+        "name": "Pixilate",
+        "effect": "type_conversion",
+        "converts": "Normal",
+        "to": "Fairy",
+        "boost": 1.2,
+        "description": "Movimientos Normal se vuelven Hada y aumentan 20%"
+    },
+    {
+        "name": "Refrigerate",
+        "effect": "type_conversion",
+        "converts": "Normal",
+        "to": "Ice",
+        "boost": 1.2,
+        "description": "Movimientos Normal se vuelven Hielo y aumentan 20%"
+    },
+    {
+        "name": "Galvanize",
+        "effect": "type_conversion",
+        "converts": "Normal",
+        "to": "Electric",
+        "boost": 1.2,
+        "description": "Movimientos Normal se vuelven Eléctrico y aumentan 20%"
+    },
+    {
+        "name": "Normalize",
+        "effect": "type_conversion",
+        "converts": "all",
+        "to": "Normal",
+        "description": "Todos los movimientos se vuelven Normal"
+    },
+    {
+        "name": "Sand Force",
+        "effect": "weather_boost",
+        "weather": "sandstorm",
+        "types": ["Rock", "Ground", "Steel"],
+        "multiplier": 1.3,
+        "description": "Aumenta 30% daño de Roca/Tierra/Acero en tormenta arena"
+    },
+    {
+        "name": "Solar Power",
+        "effect": "weather_boost",
+        "weather": "sun",
+        "stat": "special_attack",
+        "multiplier": 1.5,
+        "description": "Aumenta 50% ataque especial bajo sol"
+    },
+    {
+        "name": "Fur Coat",
+        "effect": "physical_resistance",
+        "multiplier": 0.5,
+        "description": "Reduce 50% daño de ataques físicos"
+    },
+    {
+        "name": "Pelaje Recio",
+        "effect": "physical_resistance",
+        "multiplier": 0.5,
+        "description": "Reduce 50% daño de ataques físicos"
+    },
+    {
+        "name": "Prankster",
+        "effect": "priority_boost",
+        "description": "Movimientos de estado tienen +1 prioridad"
+    },
+    {
+        "name": "Magic Guard",
+        "effect": "indirect_immunity",
+        "description": "Inmune a daño indirecto"
+    },
+    {
+        "name": "Mold Breaker",
+        "effect": "ignore_abilities",
+        "description": "Ignora habilidades del rival"
+    },
+    {
+        "name": "Defiant",
+        "effect": "stat_boost_on_lower",
+        "description": "Aumenta Ataque x2 cuando bajan sus estadísticas"
+    },
+    {
+        "name": "Competitive",
+        "effect": "stat_boost_on_lower",
+        "description": "Aumenta At.Esp x2 cuando bajan sus estadísticas"
+    },
+    {
+        "name": "Storm Drain",
+        "effect": "type_immunity",
+        "type": "Water",
+        "heal": true,
+        "description": "Inmune a Agua y aumenta At.Esp"
+    },
+    {
+        "name": "Lightning Rod",
+        "effect": "type_immunity",
+        "type": "Electric",
+        "heal": true,
+        "description": "Inmune a Eléctrico y aumenta At.Esp"
+    },
+    {
+        "name": "Sap Sipper",
+        "effect": "type_immunity",
+        "type": "Grass",
+        "boost": true,
+        "description": "Inmune a Planta y aumenta Ataque"
+    },
+    {
+        "name": "Wonder Guard",
+        "effect": "super_effective_only",
+        "description": "Solo recibe daño de ataques supereficaces"
+    },
+    {
+        "name": "Scrappy",
+        "effect": "type_override",
+        "description": "Normal y Lucha golpean a Fantasma"
+    },
+    {
+        "name": "Tinted Lens",
+        "effect": "not_very_effective_boost",
+        "multiplier": 2.0,
+        "description": "Ataques poco efectivos hacen daño normal"
+    },
+    {
+        "name": "Analytic",
+        "effect": "speed_boost",
+        "multiplier": 1.3,
+        "description": "Aumenta 30% poder si ataca último"
+    },
+    {
+        "name": "Reckless",
+        "effect": "recoil_boost",
+        "multiplier": 1.2,
+        "description": "Aumenta 20% movimientos con retroceso"
+    },
+    {
+        "name": "Skill Link",
+        "effect": "multi_hit_max",
+        "description": "Movimientos multi-golpe golpean máximo de veces"
+    },
+    {
+        "name": "Parental Bond",
+        "effect": "double_attack",
+        "multiplier": 1.25,
+        "description": "Ataca dos veces (segundo golpe 25% poder)"
+    },
+    {
+        "name": "Download",
+        "effect": "stat_check",
+        "description": "Aumenta Ataque o At.Esp según rival"
+    },
+    {
+        "name": "Protean",
+        "effect": "type_change_on_move",
+        "description": "Cambia a tipo del movimiento usado"
+    },
+    {
+        "name": "Libero",
+        "effect": "type_change_on_move",
+        "description": "Cambia a tipo del movimiento usado"
+    }
+]

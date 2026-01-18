@@ -81,11 +81,25 @@
                     <h3>Atacante</h3>
                     <button class="btn btn-secondary" onclick="openAttackerSelector()">Seleccionar Pokémon</button>
                     <div id="attackerInfo" class="pokemon-info-box"></div>
+                    <div class="ability-selector">
+                        <label>⭐ Habilidad del Atacante (opcional):</label>
+                        <input type="text" id="attackerAbility" placeholder="Ej: Huge Power, Technician..." autocomplete="off">
+                        <div id="attackerAbilitySuggestions" class="suggestions"></div>
+                    </div>
                 </div>
                 <div class="damage-section">
                     <h3>Defensor</h3>
                     <button class="btn btn-secondary" onclick="openDefenderSelector()">Seleccionar Pokémon</button>
                     <div id="defenderInfo" class="pokemon-info-box"></div>
+                    <div class="ability-selector">
+                        <label>⭐ Habilidad del Defensor (opcional):</label>
+                        <input type="text" id="defenderAbility" placeholder="Ej: Levitate, Thick Fat..." autocomplete="off">
+                        <div id="defenderAbilitySuggestions" class="suggestions"></div>
+                    </div>
+                    <div class="stats-group" style="margin-top: 10px;">
+                        <label>Nivel del Defensor:</label>
+                        <input type="number" id="defenderLevel" min="1" max="100" value="50">
+                    </div>
                 </div>
             </div>
             <div class="damage-section">

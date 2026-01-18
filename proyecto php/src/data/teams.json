@@ -76,9 +76,45 @@
                 "moves": [],
                 "type": "Agua, Tierra",
                 "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/423.png"
+            },
+            {
+                "id": "pokemon_696c183b78cc3",
+                "nickname": "Furfrou",
+                "isCustom": false,
+                "basePokemonName": "Furfrou",
+                "basePokemonId": 676,
+                "hp": 75,
+                "attack": 80,
+                "defense": 60,
+                "spAtk": 65,
+                "spDef": 90,
+                "speed": 102,
+                "ability": "Fur Coat",
+                "moves": [],
+                "type": "Normal",
+                "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/676.png"
+            },
+            {
+                "id": "pokemon_696c1deb178c8",
+                "nickname": "y",
+                "isCustom": true,
+                "basePokemonName": "Yveltal",
+                "basePokemonId": 717,
+                "hp": 171,
+                "attack": 120,
+                "defense": 99,
+                "spAtk": 131,
+                "spDef": 103,
+                "speed": 96,
+                "ability": "Illuminate",
+                "moves": [
+                    "Dark Pulse"
+                ],
+                "type": "Siniestro, Volador",
+                "image": "https:\/\/raw.githubusercontent.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/official-artwork\/717.png"
             }
         ],
         "createdAt": "2026-01-16 10:18:27",
-        "updatedAt": "2026-01-17 05:44:08"
+        "updatedAt": "2026-01-17 18:03:47"
     }
 ]

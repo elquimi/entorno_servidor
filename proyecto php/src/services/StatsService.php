@@ -8,10 +8,12 @@ namespace services;
 class StatsService
 {
     private $typeService;
+    private $abilityService;
 
     public function __construct()
     {
         $this->typeService = new TypeService();
+        $this->abilityService = new AbilityService();
     }
 
     /**
@@ -81,11 +83,13 @@ class StatsService
      * 
      * @param array $attacker - Datos del Pokémon atacante
      * @param array $defender - Datos del Pokémon defensor
-     * @param array $move - Datos del movimiento (name, power, type)
+     * @param array $move - Datos del movimiento (name, power, type, category)
      * @param int $level - Nivel del atacante (default 50)
+     * @param string $attackerAbility - Habilidad del atacante (opcional)
+     * @param string $defenderAbility - Habilidad del defensor (opcional)
      * @return array - Información del daño calculado
      */
-    public function calculateDamageWithType($attacker, $defender, $move, $level = 50)
+    public function calculateDamageWithType($attacker, $defender, $move, $level = 50, $attackerAbility = null, $defenderAbility = null)
     {
         // Validar datos mínimos
         if (!$attacker || !$defender || !$move) {
@@ -95,6 +99,7 @@ class StatsService
         $movePower = (int)($move['power'] ?? 0);
         $moveType = trim($move['type'] ?? 'Normal');
         $moveName = trim($move['name'] ?? 'Movimiento');
+        $moveCategory = trim($move['category'] ?? 'physical');
 
         if ($movePower <= 0) {
             return ['error' => 'El poder del movimiento debe ser mayor a 0'];
@@ -104,6 +109,7 @@ class StatsService
         $attackerHP = (int)($attacker['hp'] ?? 100);
         $attackerAtk = (int)($attacker['attack'] ?? 100);
         $attackerSpAtk = (int)($attacker['spAtk'] ?? 100);
+        $attackerTypes = isset($attacker['types']) ? $attacker['types'] : [$attacker['type'] ?? 'Normal'];
 
         // Estadísticas del defensor
         $defenderDef = (int)($defender['defense'] ?? 100);
@@ -111,12 +117,23 @@ class StatsService
         $defenderHP = (int)($defender['hp'] ?? 100);
         $defenderType = trim($defender['type'] ?? 'Normal');
 
-        // Determinar si es movimiento físico o especial
-        $specialTypes = ['Fuego', 'Agua', 'Eléctrico', 'Planta', 'Hielo', 'Psíquico', 'Dragón', 'Hada'];
-        $isSpecialMove = in_array($moveType, $specialTypes);
+        // Determinar si es movimiento físico o especial según categoría
+        $isSpecialMove = ($moveCategory === 'special');
 
         $attack = $isSpecialMove ? $attackerSpAtk : $attackerAtk;
         $defense = $isSpecialMove ? $defenderSpDef : $defenderDef;
+
+        // Aplicar multiplicador de habilidad del atacante
+        $attackerAbilityMultiplier = $this->abilityService->getAttackerMultiplier(
+            $attackerAbility,
+            $moveType,
+            $moveCategory,
+            $movePower,
+            $attackerTypes
+        );
+
+        // Aplicar multiplicador de ataque de habilidad
+        $attack = (int)($attack * $attackerAbilityMultiplier);
 
         // Fórmula oficial: damage = ((((2 * level / 5 + 2) * power * attack / defense) / 50) + 2) * modifiers
         $baseDamage = ((((2 * $level / 5 + 2) * $movePower * $attack / $defense) / 50) + 2);
@@ -124,8 +141,16 @@ class StatsService
         // Obtener multiplicador de tipo
         $typeMultiplier = $this->typeService->getDamageMultiplier($moveType, $defenderType);
 
-        // Si es inmune, daño es 0
-        if ($typeMultiplier === 0) {
+        // Aplicar multiplicador de habilidad del defensor (puede otorgar inmunidad)
+        $defenderAbilityMultiplier = $this->abilityService->getDefenderMultiplier(
+            $defenderAbility,
+            $moveType,
+            $moveCategory,
+            $typeMultiplier
+        );
+
+        // Si la habilidad otorga inmunidad o el tipo es inmune
+        if ($defenderAbilityMultiplier === 0 || $typeMultiplier === 0) {
             return [
                 'success' => true,
                 'immune' => true,
@@ -136,16 +161,21 @@ class StatsService
                 'effectiveness' => 'Inmune',
                 'typeMultiplier' => 0,
                 'minDamage' => 0,
-                'maxDamage' => 0
+                'maxDamage' => 0,
+                'attackerAbility' => $attackerAbility,
+                'defenderAbility' => $defenderAbility
             ];
         }
 
         // Aplicar multiplicador de tipo
         $damageWithType = $baseDamage * $typeMultiplier;
 
+        // Aplicar multiplicador de habilidad del defensor
+        $damageWithAbilities = $damageWithType * $defenderAbilityMultiplier;
+
         // Aplicar variación (85% - 100%)
-        $minDamage = (int)floor($damageWithType * 0.85);
-        $maxDamage = (int)floor($damageWithType * 1.0);
+        $minDamage = (int)floor($damageWithAbilities * 0.85);
+        $maxDamage = (int)floor($damageWithAbilities * 1.0);
 
         // Calcular porcentaje de HP
         $percentMin = round(($minDamage / $defenderHP) * 100);
@@ -168,15 +198,20 @@ class StatsService
             'moveName' => $moveName,
             'moveType' => $moveType,
             'movePower' => $movePower,
+            'moveCategory' => $moveCategory,
             'isSpecialMove' => $isSpecialMove,
             'attackerName' => $attacker['name'] ?? 'Atacante',
             'attackerStat' => $attack,
             'attackerStatType' => $isSpecialMove ? 'Ataque Especial' : 'Ataque',
+            'attackerAbility' => $attackerAbility,
+            'attackerAbilityMultiplier' => $attackerAbilityMultiplier,
             'defenderName' => $defender['name'] ?? 'Defensor',
             'defenderType' => $defenderType,
             'defenderStat' => $defense,
             'defenderStatType' => $isSpecialMove ? 'Defensa Especial' : 'Defensa',
             'defenderHP' => $defenderHP,
+            'defenderAbility' => $defenderAbility,
+            'defenderAbilityMultiplier' => $defenderAbilityMultiplier,
             'typeMultiplier' => $typeMultiplier,
             'effectiveness' => $effectiveness,
             'minDamage' => $minDamage,
